@@ -35,7 +35,7 @@ If you don't know the game id and series you can find the on the game page at fo
 
 For instance the Swedish 2021 Championship final game can be found @ [https://www.wbsceurope.org/en/events/**2021-elitserien-baseboll**/schedule-and-results/box-score/**84908**](https://www.wbsceurope.org/en/events/2021-elitserien-baseboll/schedule-and-results/box-score/84908)
 
-The series and game id can be fopund in the URL (marked with bold above).
+The series and game id can be found in the URL (marked with bold above).
 
 The application will output what is currently happening live. If you want to test it out with no actual game being played at the moment you can use the `replay` mode by including the option `-m replay` in the command.
 
