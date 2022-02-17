@@ -97,8 +97,18 @@ public class StatsClient {
   private SeriesStatsImpl.Builder parsePlayerSeriesStats(
       final Document doc, final String playerId, final String teamId) {
     return SeriesStatsImpl.builder()
+        .teamFlagUrl(parseTeamFlagUrl(doc))
+        .playerImageUrl(parsePlayerImageUrl(doc))
         .batting(parsePlayerBatterStats(doc, playerId, teamId))
         .pitching(parsePlayerPitcherStats(doc, playerId, teamId));
+  }
+
+  private Optional<String> parseTeamFlagUrl(final Document doc) {
+    return doc.getElementsByClass("flag-icon").stream().map(e -> e.attr("src")).findFirst();
+  }
+
+  private Optional<String> parsePlayerImageUrl(final Document doc) {
+    return doc.getElementsByClass("player-image").stream().map(e -> e.attr("src")).findFirst();
   }
 
   private Optional<BatterStats> parsePlayerBatterStats(

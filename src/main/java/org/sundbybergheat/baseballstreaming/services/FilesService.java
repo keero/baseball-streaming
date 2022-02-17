@@ -1,6 +1,7 @@
 package org.sundbybergheat.baseballstreaming.services;
 
 import java.io.IOException;
+import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -136,8 +137,8 @@ public class FilesService {
               pitcher.name(), pitcher.playerId(), pitcher.teamId(), seriesId));
     }
 
-    Optional<PitcherStats> maybePitcherStats =
-        stats.get(pitcher.playerId()).seriesStats().get(seriesId).pitching();
+    SeriesStats seriesStats = stats.get(pitcher.playerId()).seriesStats().get(seriesId);
+    Optional<PitcherStats> maybePitcherStats = seriesStats.pitching();
     if (maybePitcherStats.isEmpty()) {
       throw new IOException(
           String.format("No stats for pitcher %s (id=%s)", pitcher.name(), pitcher.playerId()));
@@ -162,9 +163,8 @@ public class FilesService {
     filesClient.writeStringToFile(
         "current_pitcher/wins-losses.txt",
         String.format("%d - %d", pitcherStats.wins(), pitcherStats.losses()));
-    filesClient.copyFile(
-        String.format("team_resources/flags/%s.png", pitcher.teamCode()),
-        "current_pitcher/flag.png");
+
+    updateImages("current_pitcher", seriesStats, pitcher.teamId(), pitcher.playerId());
   }
 
   private void updateCurrentBatter() throws IOException, StatsException {
@@ -235,8 +235,6 @@ public class FilesService {
     filesClient.writeStringToFile(subdir + "/lastname.txt", batter.lastName());
     filesClient.writeStringToFile(subdir + "/pos.txt", batter.position().orElse(""));
     filesClient.writeStringToFile(subdir + "/fullname.txt", batter.name());
-    filesClient.copyFile(
-        String.format("team_resources/flags/%s.png", batter.teamCode()), subdir + "/flag.png");
 
     if (!stats.containsKey(batter.playerId())) {
       stats.put(
@@ -280,6 +278,8 @@ public class FilesService {
               : String.format("%d Season", selectedSeries.year());
     }
     filesClient.writeStringToFile(subdir + "/stats_for_series.txt", statsForSeries);
+
+    updateImages(subdir, selectedSeries, batter.teamId(), batter.playerId());
   }
 
   private SeriesStats selectSeries(Map<String, SeriesStats> seriesStats, final String seriesId) {
@@ -328,5 +328,38 @@ public class FilesService {
         .filter(s -> s.batting().map(b -> b.games() > 0).orElse(false))
         .findFirst()
         .orElse(null);
+  }
+
+  private void updateImages(
+      final String subdir,
+      final SeriesStats selectedSeries,
+      final String teamId,
+      final String playerId)
+      throws IOException {
+    String teamFlagPath = String.format("team_resources/flags/%s.png", teamId);
+    if (!filesClient.fileExists(teamFlagPath)) {
+      if (selectedSeries.teamFlagUrl().isEmpty()) {
+        filesClient.copyFileFromResource("/team-flag-default.png", subdir + "/flag.png");
+      } else {
+        filesClient.copyFileFromURL(new URL(selectedSeries.teamFlagUrl().get()), teamFlagPath);
+        filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
+      }
+    } else {
+      filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
+    }
+
+    String playerImagePath =
+        String.format("team_resources/player_images/%s-%s.png", teamId, playerId);
+    if (!filesClient.fileExists(playerImagePath)) {
+      if (selectedSeries.playerImageUrl().isEmpty()) {
+        filesClient.copyFileFromResource("/player-image-default.png", subdir + "/image.png");
+      } else {
+        filesClient.copyFileFromURL(
+            new URL(selectedSeries.playerImageUrl().get()), playerImagePath);
+        filesClient.copyFile(playerImagePath, subdir + "/image.png");
+      }
+    } else {
+      filesClient.copyFile(playerImagePath, subdir + "/image.png");
+    }
   }
 }

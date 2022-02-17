@@ -62,8 +62,10 @@ The application will output what is currently happening live. If you want to tes
 │   ├── avg.txt
 │   ├── batting.txt
 │   ├── firstname.txt
+│   ├── flag.png
 │   ├── fullname.txt
 │   ├── hr.txt
+│   ├── image.png
 │   ├── lastname.txt
 │   ├── ops.txt
 │   ├── pos.txt
@@ -73,10 +75,12 @@ The application will output what is currently happening live. If you want to tes
 │   ├── count.txt
 │   ├── era.txt
 │   ├── firstname.txt
+│   ├── flag.png
 │   ├── fullname.txt
 │   ├── games.txt
 │   ├── hits.txt
 │   ├── hrs-allowed.txt
+│   ├── image.png
 │   ├── innings.txt
 │   ├── lastname.txt
 │   ├── strikeouts.txt
@@ -90,8 +94,10 @@ The application will output what is currently happening live. If you want to tes
 │   ├── avg.txt
 │   ├── batting.txt
 │   ├── firstname.txt
+│   ├── flag.png
 │   ├── fullname.txt
 │   ├── hr.txt
+│   ├── image.png
 │   ├── lastname.txt
 │   ├── ops.txt
 │   ├── pos.txt
@@ -104,8 +110,10 @@ The application will output what is currently happening live. If you want to tes
 │   ├── avg.txt
 │   ├── batting.txt
 │   ├── firstname.txt
+│   ├── flag.png
 │   ├── fullname.txt
 │   ├── hr.txt
+│   ├── image.png
 │   ├── lastname.txt
 │   ├── ops.txt
 │   ├── pos.txt
@@ -115,10 +123,20 @@ The application will output what is currently happening live. If you want to tes
 │   ├── 0.png
 │   ├── 1.png
 │   └── 2.png
-└── outs.png
+├── outs.png
+└── team_resources
+    ├── flags
+    │   ├── 1234.png
+    │   └── 5678.png
+    └── player_images
+        ├── 1234-12345.png
+        ├── 5678-67890.png
+        .
+        .
+        .
 ```
 
-If you want to use your own images for bases and outs, then just replace the files in the `bases/` and `outs/` directories (i.e. copy your own bases empty image to `bases/ooo.png` and so forth).
+If you want to use your own images for bases, outs, team flags, or player images; then just replace the files in the `bases/`, `outs/`, `team_resources/...` directories (e.g., copy your own bases empty image to `bases/ooo.png` and so forth).
 
 ## Building from source code
 

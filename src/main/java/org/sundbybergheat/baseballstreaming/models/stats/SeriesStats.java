@@ -21,6 +21,10 @@ public interface SeriesStats {
 
   String seriesName();
 
+  Optional<String> teamFlagUrl();
+
+  Optional<String> playerImageUrl();
+
   Optional<BatterStats> batting();
 
   Optional<PitcherStats> pitching();

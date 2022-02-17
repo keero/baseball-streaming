@@ -2,6 +2,7 @@ package org.sundbybergheat.baseballstreaming.clients;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import org.apache.commons.io.FileUtils;
@@ -20,10 +21,14 @@ public class FilesClient {
   }
 
   public void copyFileFromResource(final String resourcePath, final String to) throws IOException {
+    copyFileFromURL(IOUtils.resourceToURL(resourcePath), to);
+  }
+
+  public void copyFileFromURL(final URL url, final String to) throws IOException {
     File target =
         new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
     if (!target.exists()) {
-      FileUtils.copyURLToFile(IOUtils.resourceToURL(resourcePath), target);
+      FileUtils.copyURLToFile(url, target, 5000, 5000);
     }
   }
 
@@ -47,5 +52,10 @@ public class FilesClient {
         || !FileUtils.readFileToString(file, StandardCharsets.UTF_8).equals(content)) {
       FileUtils.write(file, content, StandardCharsets.UTF_8, false);
     }
+  }
+
+  public boolean fileExists(final String path) {
+    return new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(path)))
+        .exists();
   }
 }
