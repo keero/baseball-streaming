@@ -33,12 +33,12 @@ public class App {
         "S",
         "stats-base-url",
         true,
-        "Base url where to fetch stats from. Defaults to 'https://stats.baseboll-softboll.se'");
+        "Base url where to fetch stats from. Defaults to 'https://www.wbsceurope.org'");
     options.addOption(
         "P",
         "plays-base-url",
         true,
-        "Base url where to fetch plays from. Defaults to 'https://s3-eu-west-1.amazonaws.com'");
+        "Base url where to fetch plays from. Defaults to 'https://game.wbsc.org'");
     options.addOption("s", "series", true, "Series ID. E.g., '2021-juniorserien-baseboll'");
     options.addOption("g", "game", true, "Game ID. E.g., '84917'");
     options.addOption("c", "config-file", true, "Path to config file");
@@ -83,15 +83,15 @@ public class App {
       target = properties.getProperty("target");
       seriesId = properties.getProperty("series");
       gameId = properties.getProperty("game");
-      statsBaseUrl = properties.getProperty("stats-base-url", "https://stats.baseboll-softboll.se");
-      playsBaseUrl = properties.getProperty("plays-base-url", "https://s3-eu-west-1.amazonaws.com");
+      statsBaseUrl = properties.getProperty("stats-base-url", "https://www.wbsceurope.org");
+      playsBaseUrl = properties.getProperty("plays-base-url", "https://game.wbsc.org");
       runMode = properties.getProperty("run-mode", RunMode.live.toString());
     } else {
       target = cmd.getOptionValue("t");
       seriesId = cmd.getOptionValue("s");
       gameId = cmd.getOptionValue("g");
-      statsBaseUrl = cmd.getOptionValue("S", "https://stats.baseboll-softboll.se");
-      playsBaseUrl = cmd.getOptionValue("P", "https://s3-eu-west-1.amazonaws.com");
+      statsBaseUrl = cmd.getOptionValue("S", "https://www.wbsceurope.org");
+      playsBaseUrl = cmd.getOptionValue("P", "https://game.wbsc.org");
       runMode = cmd.getOptionValue("m", RunMode.live.toString());
     }
 

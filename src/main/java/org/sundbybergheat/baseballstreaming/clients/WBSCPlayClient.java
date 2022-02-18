@@ -12,8 +12,8 @@ import org.sundbybergheat.baseballstreaming.models.wbsc.WBSCException;
 
 public class WBSCPlayClient {
 
-  private static final String LATEST_URL = "%s/game.wbsc.org/gamedata/%s/latest.json?_=%d";
-  private static final String PLAY_URL = "%s/game.wbsc.org/gamedata/%s/play%d.json?_=%d";
+  private static final String LATEST_URL = "%s/gamedata/%s/latest.json?_=%d";
+  private static final String PLAY_URL = "%s/gamedata/%s/play%d.json?_=%d";
   private final OkHttpClient client;
   private final String baseUrl;
 

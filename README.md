@@ -31,7 +31,7 @@ Assuming you want to stream the game with id `84908` in `2021-elitserien-basebol
 java -jar <path-to-the-downloaded-jar> -t C:/obs-studio/resources -s 2021-elitserien-baseboll -g 84908
 ```
 
-If you don't know the game id and series you can find the on the game page at for instance https://www.wbsceurope.org/en or https://stats.baseboll-softboll.se/
+If you don't know the game id and series you can find the on the game page at for instance https://www.wbsceurope.org/ or https://stats.baseboll-softboll.se/
 
 For instance the Swedish 2021 Championship final game can be found @ [https://www.wbsceurope.org/en/events/**2021-elitserien-baseboll**/schedule-and-results/box-score/**84908**](https://www.wbsceurope.org/en/events/2021-elitserien-baseboll/schedule-and-results/box-score/84908)
 

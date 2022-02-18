@@ -40,15 +40,14 @@ public class WBSCPlayClientTest {
     when(mockCall.execute())
         .thenReturn(
             new Response.Builder()
-                .request(new Request.Builder().url("https://s3-eu-west-1.amazonaws.com").build())
+                .request(new Request.Builder().url("https://game.wbsc.org").build())
                 .code(200)
                 .protocol(Protocol.HTTP_1_0)
                 .message("arg0")
                 .body(ResponseBody.create("123", MediaType.parse("plain/text")))
                 .build());
 
-    WBSCPlayClient wbscPlayClient =
-        new WBSCPlayClient(mockClient, "https://s3-eu-west-1.amazonaws.com/");
+    WBSCPlayClient wbscPlayClient = new WBSCPlayClient(mockClient, "https://game.wbsc.org/");
 
     int latestPlay = wbscPlayClient.getLatestPlay("83353");
 
@@ -61,15 +60,14 @@ public class WBSCPlayClientTest {
     when(mockCall.execute())
         .thenReturn(
             new Response.Builder()
-                .request(new Request.Builder().url("https://s3-eu-west-1.amazonaws.com").build())
+                .request(new Request.Builder().url("https://game.wbsc.org").build())
                 .code(200)
                 .protocol(Protocol.HTTP_1_0)
                 .message("arg0")
                 .body(ResponseBody.create(resourceToString, MediaType.parse("application/json")))
                 .build());
 
-    WBSCPlayClient wbscPlayClient =
-        new WBSCPlayClient(mockClient, "https://s3-eu-west-1.amazonaws.com/");
+    WBSCPlayClient wbscPlayClient = new WBSCPlayClient(mockClient, "https://game.wbsc.org/");
 
     Optional<Play> play = wbscPlayClient.getPlay("83353", 1);
 
