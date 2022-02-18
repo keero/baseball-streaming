@@ -3,6 +3,7 @@ package org.sundbybergheat.baseballstreaming.services;
 import java.io.IOException;
 import java.net.URL;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -64,7 +65,8 @@ public class FilesService {
   private void updateState() throws StatsException {
     try {
       updateScoreBoard();
-      updatePitcher();
+      updateLineups();
+      updateCurrentPitcher();
       updateCurrentBatter();
       updateOnDeckBatter();
       updateInHoleBatter();
@@ -122,7 +124,7 @@ public class FilesService {
     }
   }
 
-  private void updatePitcher() throws IOException, StatsException {
+  private void updateCurrentPitcher() throws IOException, StatsException {
     String prefix = play.situation().currentInning().startsWith("TOP") ? "29" : "19";
     String key =
         play.boxScore().keySet().stream()
@@ -132,8 +134,13 @@ public class FilesService {
             .get();
     BoxScore pitcher = play.boxScore().get(key);
 
+    updatePitcher(pitcher, "current_pitcher");
+  }
+
+  private void updatePitcher(final BoxScore pitcher, final String subdir)
+      throws IOException, StatsException {
     filesClient.writeStringToFile(
-        "current_pitcher/count.txt", pitcher.pitches().map(p -> p.toString()).orElse(""));
+        subdir + "/count.txt", pitcher.pitches().map(p -> p.toString()).orElse(""));
 
     if (!stats.containsKey(pitcher.playerId())) {
       stats.put(
@@ -145,31 +152,44 @@ public class FilesService {
     SeriesStats seriesStats = stats.get(pitcher.playerId()).seriesStats().get(seriesId);
     Optional<PitcherStats> maybePitcherStats = seriesStats.pitching();
     if (maybePitcherStats.isEmpty()) {
-      throw new IOException(
-          String.format("No stats for pitcher %s (id=%s)", pitcher.name(), pitcher.playerId()));
+      LOG.warn("No pitching stats found for {}, setting default values.", pitcher.name());
+      filesClient.writeStringToFile(subdir + "/era.txt", "-");
+      filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
+      filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
+      filesClient.writeStringToFile(subdir + "/games.txt", "0");
+      filesClient.writeStringToFile(subdir + "/hits.txt", "0");
+      filesClient.writeStringToFile(subdir + "/hrs-allowed.txt", "0");
+      filesClient.writeStringToFile(subdir + "/innings.txt", "0.0");
+      filesClient.writeStringToFile(subdir + "/lastname.txt", pitcher.lastName());
+      filesClient.writeStringToFile(subdir + "/strikeouts.txt", "0");
+      filesClient.writeStringToFile(subdir + "/walks.txt", "0");
+      filesClient.writeStringToFile(subdir + "/wins-losses.txt", "0 - 0");
+
+      updateImages(subdir + "", seriesStats, pitcher.teamId(), pitcher.playerId());
+      return;
     }
     PitcherStats pitcherStats = maybePitcherStats.get();
 
-    filesClient.writeStringToFile("current_pitcher/era.txt", pitcherStats.era());
-    filesClient.writeStringToFile("current_pitcher/firstname.txt", pitcher.firstName());
-    filesClient.writeStringToFile("current_pitcher/fullname.txt", pitcher.name());
+    filesClient.writeStringToFile(subdir + "/era.txt", pitcherStats.era());
+    filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
+    filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
     filesClient.writeStringToFile(
-        "current_pitcher/games.txt", Integer.toString(pitcherStats.appearances()));
+        subdir + "/games.txt", Integer.toString(pitcherStats.appearances()));
     filesClient.writeStringToFile(
-        "current_pitcher/hits.txt", Integer.toString(pitcherStats.hitsAllowed()));
+        subdir + "/hits.txt", Integer.toString(pitcherStats.hitsAllowed()));
     filesClient.writeStringToFile(
-        "current_pitcher/hrs-allowed.txt", Integer.toString(pitcherStats.homerunsAllowed()));
-    filesClient.writeStringToFile("current_pitcher/innings.txt", pitcherStats.inningsPitched());
-    filesClient.writeStringToFile("current_pitcher/lastname.txt", pitcher.lastName());
+        subdir + "/hrs-allowed.txt", Integer.toString(pitcherStats.homerunsAllowed()));
+    filesClient.writeStringToFile(subdir + "/innings.txt", pitcherStats.inningsPitched());
+    filesClient.writeStringToFile(subdir + "/lastname.txt", pitcher.lastName());
     filesClient.writeStringToFile(
-        "current_pitcher/strikeouts.txt", Integer.toString(pitcherStats.strikeouts()));
+        subdir + "/strikeouts.txt", Integer.toString(pitcherStats.strikeouts()));
     filesClient.writeStringToFile(
-        "current_pitcher/walks.txt", Integer.toString(pitcherStats.walksAllowed()));
+        subdir + "/walks.txt", Integer.toString(pitcherStats.walksAllowed()));
     filesClient.writeStringToFile(
-        "current_pitcher/wins-losses.txt",
+        subdir + "/wins-losses.txt",
         String.format("%d - %d", pitcherStats.wins(), pitcherStats.losses()));
 
-    updateImages("current_pitcher", seriesStats, pitcher.teamId(), pitcher.playerId());
+    updateImages(subdir + "", seriesStats, pitcher.teamId(), pitcher.playerId());
   }
 
   private void updateCurrentBatter() throws IOException, StatsException {
@@ -366,5 +386,28 @@ public class FilesService {
     } else {
       filesClient.copyFile(playerImagePath, subdir + "/image.png");
     }
+  }
+
+  private void updateLineups() throws IOException, StatsException {
+    List<BoxScore> homeLineup = LineupTools.getHomeLineup(play);
+    List<BoxScore> awayLineup = LineupTools.getAwayLineup(play);
+
+    if (homeLineup.size() != 9 || awayLineup.size() != 9) {
+      throw new StatsException(
+          String.format(
+              "Invalid lineups. Expected 9 batters each but got %d home batters and %d away batters.",
+              homeLineup.size(), awayLineup.size()));
+    }
+
+    for (int order = 1; order < 10; order += 1) {
+      updateBatter(homeLineup.get(order - 1), "lineups/home/" + order);
+    }
+
+    for (int order = 1; order < 10; order += 1) {
+      updateBatter(awayLineup.get(order - 1), "lineups/away/" + order);
+    }
+
+    updatePitcher(LineupTools.getHomePitcher(play), "lineups/home/pitcher");
+    updatePitcher(LineupTools.getAwayPitcher(play), "lineups/away/pitcher");
   }
 }

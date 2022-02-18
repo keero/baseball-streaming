@@ -106,6 +106,273 @@ The application will output what is currently happening live. If you want to tes
 ├── inning_half.txt
 ├── inning_text.txt
 ├── inning.txt
+├── lineups
+│   ├── away
+│   │   ├── 1
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 2
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 3
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 4
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 5
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 6
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 7
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 8
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   ├── 9
+│   │   │   ├── avg.txt
+│   │   │   ├── batting.txt
+│   │   │   ├── firstname.txt
+│   │   │   ├── flag.png
+│   │   │   ├── fullname.txt
+│   │   │   ├── hr.txt
+│   │   │   ├── image.png
+│   │   │   ├── lastname.txt
+│   │   │   ├── ops.txt
+│   │   │   ├── pos.txt
+│   │   │   ├── rbi.txt
+│   │   │   └── stats_for_series.txt
+│   │   └── pitcher
+│   │       ├── count.txt
+│   │       ├── era.txt
+│   │       ├── firstname.txt
+│   │       ├── flag.png
+│   │       ├── fullname.txt
+│   │       ├── games.txt
+│   │       ├── hits.txt
+│   │       ├── hrs-allowed.txt
+│   │       ├── image.png
+│   │       ├── innings.txt
+│   │       ├── lastname.txt
+│   │       ├── strikeouts.txt
+│   │       ├── walks.txt
+│   │       └── wins-losses.txt
+│   └── home
+│       ├── 1
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 2
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 3
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 4
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 5
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 6
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 7
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 8
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       ├── 9
+│       │   ├── avg.txt
+│       │   ├── batting.txt
+│       │   ├── firstname.txt
+│       │   ├── flag.png
+│       │   ├── fullname.txt
+│       │   ├── hr.txt
+│       │   ├── image.png
+│       │   ├── lastname.txt
+│       │   ├── ops.txt
+│       │   ├── pos.txt
+│       │   ├── rbi.txt
+│       │   └── stats_for_series.txt
+│       └── pitcher
+│           ├── count.txt
+│           ├── era.txt
+│           ├── firstname.txt
+│           ├── flag.png
+│           ├── fullname.txt
+│           ├── games.txt
+│           ├── hits.txt
+│           ├── hrs-allowed.txt
+│           ├── image.png
+│           ├── innings.txt
+│           ├── lastname.txt
+│           ├── strikeouts.txt
+│           ├── walks.txt
+│           └── wins-losses.txt
 ├── ondeck_batter
 │   ├── avg.txt
 │   ├── batting.txt
@@ -127,10 +394,12 @@ The application will output what is currently happening live. If you want to tes
 └── team_resources
     ├── flags
     │   ├── 1234.png
-    │   └── 5678.png
+    │   ├── 5678.png
+    │   └── default.png
     └── player_images
         ├── 1234-12345.png
         ├── 5678-67890.png
+        ├── default.png
         .
         .
         .
