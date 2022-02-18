@@ -49,6 +49,11 @@ public class FilesService {
     filesClient.copyFileFromResource("/outs/0.png", "outs/0.png");
     filesClient.copyFileFromResource("/outs/1.png", "outs/1.png");
     filesClient.copyFileFromResource("/outs/2.png", "outs/2.png");
+
+    filesClient.copyFileFromResource(
+        "/images/player-image-default.png", "team_resources/player_images/default.png");
+    filesClient.copyFileFromResource(
+        "/images/team-flag-default.png", "team_resources/flags/default.png");
   }
 
   protected void updatePlay(final Play play) throws StatsException {
@@ -339,7 +344,7 @@ public class FilesService {
     String teamFlagPath = String.format("team_resources/flags/%s.png", teamId);
     if (!filesClient.fileExists(teamFlagPath)) {
       if (selectedSeries.teamFlagUrl().isEmpty()) {
-        filesClient.copyFileFromResource("/team-flag-default.png", subdir + "/flag.png");
+        filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
       } else {
         filesClient.copyFileFromURL(new URL(selectedSeries.teamFlagUrl().get()), teamFlagPath);
         filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
@@ -352,7 +357,7 @@ public class FilesService {
         String.format("team_resources/player_images/%s-%s.png", teamId, playerId);
     if (!filesClient.fileExists(playerImagePath)) {
       if (selectedSeries.playerImageUrl().isEmpty()) {
-        filesClient.copyFileFromResource("/player-image-default.png", subdir + "/image.png");
+        filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
       } else {
         filesClient.copyFileFromURL(
             new URL(selectedSeries.playerImageUrl().get()), playerImagePath);

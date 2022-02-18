@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
+import java.time.Instant;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -29,6 +30,7 @@ public class FilesClient {
         new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
     if (!target.exists()) {
       FileUtils.copyURLToFile(url, target, 5000, 5000);
+      target.setLastModified(Instant.now().toEpochMilli());
     }
   }
 
@@ -40,6 +42,7 @@ public class FilesClient {
 
     if (!FileUtils.contentEquals(source, target)) {
       FileUtils.copyFile(source, target, StandardCopyOption.REPLACE_EXISTING);
+      target.setLastModified(Instant.now().toEpochMilli());
     }
   }
 
@@ -51,6 +54,7 @@ public class FilesClient {
     if (!file.exists()
         || !FileUtils.readFileToString(file, StandardCharsets.UTF_8).equals(content)) {
       FileUtils.write(file, content, StandardCharsets.UTF_8, false);
+      file.setLastModified(Instant.now().toEpochMilli());
     }
   }
 
