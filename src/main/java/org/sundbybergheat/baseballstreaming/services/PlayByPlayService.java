@@ -18,7 +18,7 @@ public class PlayByPlayService implements Runnable {
   private final WBSCPlayClient client;
   private final String gameId;
   private final RunMode runMode;
-  private final int updateInterval;
+  private final int delay;
 
   private int currentPlay = 0;
   private int lastPlay = 0;
@@ -28,12 +28,12 @@ public class PlayByPlayService implements Runnable {
       final WBSCPlayClient client,
       final String gameId,
       final RunMode runMode,
-      final int updateInterval) {
+      final int delay) {
     this.filesService = filesService;
     this.client = client;
     this.gameId = gameId;
     this.runMode = runMode;
-    this.updateInterval = updateInterval;
+    this.delay = delay;
   }
 
   @Override
@@ -41,11 +41,10 @@ public class PlayByPlayService implements Runnable {
     String playText = "";
     while (!playText.startsWith("GAME OVER")) {
       try {
-        Thread.sleep(updateInterval);
+        Thread.sleep(delay);
         if (runMode.equals(RunMode.live)) {
           int latestPlay = client.getLatestPlay(gameId);
           if (latestPlay == currentPlay) {
-            LOG.info("No new play recorded yet (latest play # is {}).", latestPlay);
             continue;
           }
           currentPlay = latestPlay;
@@ -57,7 +56,7 @@ public class PlayByPlayService implements Runnable {
                 "Replaying game {} with {} plays, updating with {} millisecond interval.",
                 gameId,
                 lastPlay,
-                updateInterval);
+                delay);
           }
           currentPlay += 1;
         }

@@ -44,6 +44,11 @@ public class App {
     options.addOption("c", "config-file", true, "Path to config file");
     options.addOption(
         "m", "run-mode", true, "Run mode. Either 'live' or 'replay'. Defaults to 'live'");
+    options.addOption(
+        "d",
+        "delay",
+        true,
+        "Delay (milliseconds) between fetching plays. Defaults to 500 for live and 3000 for replay.");
     options.addOption("h", "help", false, "Print this help section");
 
     HelpFormatter formatter = new HelpFormatter();
@@ -69,6 +74,7 @@ public class App {
     String statsBaseUrl = null;
     String playsBaseUrl = null;
     String runMode = RunMode.live.toString();
+    String delay = null;
     if (cmd.hasOption("c")) {
       Properties properties = new Properties();
       String fileName = cmd.getOptionValue("c");
@@ -93,6 +99,7 @@ public class App {
       statsBaseUrl = cmd.getOptionValue("S", "https://www.wbsceurope.org");
       playsBaseUrl = cmd.getOptionValue("P", "https://game.wbsc.org");
       runMode = cmd.getOptionValue("m", RunMode.live.toString());
+      delay = cmd.getOptionValue("d", runMode.equals(RunMode.live.toString()) ? "500" : "3000");
     }
 
     if (target == null) {
@@ -126,7 +133,12 @@ public class App {
     filesService.initResources();
 
     PlayByPlayService playByPlayService =
-        new PlayByPlayService(filesService, wbscPlayClient, gameId, RunMode.valueOf(runMode), 2000);
+        new PlayByPlayService(
+            filesService,
+            wbscPlayClient,
+            gameId,
+            RunMode.valueOf(runMode),
+            Integer.parseInt(delay));
 
     playByPlayService.run();
   }

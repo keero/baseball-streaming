@@ -19,7 +19,28 @@ java -jar <path-to-the-downloaded-jar> -h
 ```
 
 (replace `<path-to-the-downloaded-jar>` with the path to the jar file you downloaded before)
-This will show you the options expected by the appliaction. You may either create a config file (more on that further down) or provide the expected options directly to the application as option arguments.
+This will show you the options expected by the appliaction.
+
+```
+usage: baseball-streaming
+ -c,--config-file <arg>      Path to config file
+ -d,--delay <arg>            Delay (milliseconds) between fetching plays.
+                             Defaults to 500 for live and 3000 for replay.
+ -g,--game <arg>             Game ID. E.g., '84917'
+ -h,--help                   Print this help section
+ -m,--run-mode <arg>         Run mode. Either 'live' or 'replay'. Defaults
+                             to 'live'
+ -P,--plays-base-url <arg>   Base url where to fetch plays from. Defaults
+                             to 'https://game.wbsc.org'
+ -S,--stats-base-url <arg>   Base url where to fetch stats from. Defaults
+                             to 'https://www.wbsceurope.org'
+ -s,--series <arg>           Series ID. E.g., '2021-juniorserien-baseboll'
+ -t,--target <arg>           Target directory for the output. E.g.,
+                             '~/obs/resources'
+```
+
+
+You may either create a config file (more on that further down) or provide the expected options directly to the application as option arguments.
 
 The `-t` option specifies the output directory where the output text and image files will be rendered.
 The `-g` option specifies which game you are streaming. This is typically a 5 digit number such as `84908`
@@ -39,7 +60,7 @@ The series and game id can be found in the URL (marked with bold above).
 
 The application will output what is currently happening live. If you want to test it out with no actual game being played at the moment you can use the `replay` mode by including the option `-m replay` in the command.
 
-### The text and image files produced in the target directory
+## The text and image files produced in the target directory
 
 ```
 .
