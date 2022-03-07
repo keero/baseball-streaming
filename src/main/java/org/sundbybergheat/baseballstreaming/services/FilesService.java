@@ -55,6 +55,18 @@ public class FilesService {
         "/images/player-image-default.png", "team_resources/player_images/default.png");
     filesClient.copyFileFromResource(
         "/images/team-flag-default.png", "team_resources/flags/default.png");
+
+    ImageTools.getTeamColors().entrySet().stream()
+        .forEach(
+            entry -> {
+              try {
+                filesClient.writePng(
+                    entry.getValue(),
+                    String.format("team_resources/colors/%s.png", entry.getKey()));
+              } catch (IOException e) {
+                LOG.error("Unable to write team color file for {}", entry.getKey(), e);
+              }
+            });
   }
 
   protected void updatePlay(final Play play) throws StatsException {
@@ -76,6 +88,17 @@ public class FilesService {
   }
 
   private void updateScoreBoard() throws IOException {
+    String homeColorFile = String.format("team_resources/colors/%s.png", play.eventHome());
+    String awayColorFile = String.format("team_resources/colors/%s.png", play.eventAway());
+    String defaultHomeColorFile = "team_resources/colors/default_home.png";
+    String defaultAwayColorFile = "team_resources/colors/default_away.png";
+
+    filesClient.copyFile(
+        filesClient.fileExists(homeColorFile) ? homeColorFile : defaultHomeColorFile,
+        "home_color.png");
+    filesClient.copyFile(
+        filesClient.fileExists(awayColorFile) ? awayColorFile : defaultAwayColorFile,
+        "away_color.png");
     filesClient.writeStringToFile("home_team.txt", play.eventHome());
     filesClient.writeStringToFile("away_team.txt", play.eventAway());
     filesClient.writeStringToFile(
@@ -257,7 +280,7 @@ public class FilesService {
       throws IOException, StatsException {
 
     filesClient.writeStringToFile(subdir + "/firstname.txt", batter.firstName());
-    filesClient.writeStringToFile(subdir + "/lastname.txt", batter.lastName());
+    filesClient.writeStringToFile(subdir + "/lastname.txt", batter.lastName().toUpperCase());
     filesClient.writeStringToFile(subdir + "/pos.txt", batter.position().orElse(""));
     filesClient.writeStringToFile(subdir + "/fullname.txt", batter.name());
 
@@ -363,11 +386,17 @@ public class FilesService {
       throws IOException {
     String teamFlagPath = String.format("team_resources/flags/%s.png", teamId);
     if (!filesClient.fileExists(teamFlagPath)) {
-      if (selectedSeries.teamFlagUrl().isEmpty()) {
+      if (selectedSeries.teamFlagUrl().isEmpty()
+          || selectedSeries.teamFlagUrl().get().isEmpty()
+          || selectedSeries.teamFlagUrl().get().toLowerCase().endsWith(".svg")) {
         filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
       } else {
-        filesClient.copyFileFromURL(new URL(selectedSeries.teamFlagUrl().get()), teamFlagPath);
-        filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
+        filesClient.copyImageFromURL(new URL(selectedSeries.teamFlagUrl().get()), teamFlagPath);
+        if (filesClient.fileExists(teamFlagPath)) {
+          filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
+        } else {
+          filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
+        }
       }
     } else {
       filesClient.copyFile(teamFlagPath, subdir + "/flag.png");
@@ -376,12 +405,18 @@ public class FilesService {
     String playerImagePath =
         String.format("team_resources/player_images/%s-%s.png", teamId, playerId);
     if (!filesClient.fileExists(playerImagePath)) {
-      if (selectedSeries.playerImageUrl().isEmpty()) {
+      if (selectedSeries.playerImageUrl().isEmpty()
+          || selectedSeries.playerImageUrl().get().isEmpty()
+          || selectedSeries.playerImageUrl().get().toLowerCase().endsWith(".svg")) {
         filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
       } else {
-        filesClient.copyFileFromURL(
+        filesClient.copyImageFromURL(
             new URL(selectedSeries.playerImageUrl().get()), playerImagePath);
-        filesClient.copyFile(playerImagePath, subdir + "/image.png");
+        if (filesClient.fileExists(playerImagePath)) {
+          filesClient.copyFile(playerImagePath, subdir + "/image.png");
+        } else {
+          filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
+        }
       }
     } else {
       filesClient.copyFile(playerImagePath, subdir + "/image.png");

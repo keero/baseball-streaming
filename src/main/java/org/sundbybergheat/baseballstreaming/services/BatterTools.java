@@ -80,7 +80,7 @@ public class BatterTools {
             .collect(Collectors.toList());
     List<PlayData> plateApperances =
         batterPlays.stream()
-            .filter(bp -> bp.text().startsWith(batter.name()))
+            .filter(bp -> bp.text().toLowerCase().startsWith(batter.name().toLowerCase()))
             .collect(Collectors.toList());
     if (plateApperances.size() > 0) {
       return summaryOfGame(batter, plateApperances);

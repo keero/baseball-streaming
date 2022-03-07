@@ -1,11 +1,13 @@
 package org.sundbybergheat.baseballstreaming.clients;
 
+import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
+import javax.imageio.ImageIO;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
@@ -29,8 +31,29 @@ public class FilesClient {
     File target =
         new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
     if (!target.exists()) {
-      FileUtils.copyURLToFile(url, target, 5000, 5000);
+      FileUtils.copyURLToFile(url, target, 30000, 30000);
       target.setLastModified(Instant.now().toEpochMilli());
+    }
+  }
+
+  public void copyImageFromURL(final URL url, final String to) throws IOException {
+    try {
+      BufferedImage in = ImageIO.read(url);
+      if (in != null) {
+        writePng(in, to);
+      } else {
+        LOG.warn("Unable to parse content of image at {}", url);
+      }
+    } catch (RuntimeException e) {
+      LOG.warn("Unable to parse content of image at {}", url, e);
+    }
+  }
+
+  public void writePng(final BufferedImage image, final String to) throws IOException {
+    File target =
+        new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
+    if (!target.exists()) {
+      ImageIO.write(image, "png", target);
     }
   }
 

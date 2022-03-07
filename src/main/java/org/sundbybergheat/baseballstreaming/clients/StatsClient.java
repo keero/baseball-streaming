@@ -3,12 +3,15 @@ package org.sundbybergheat.baseballstreaming.clients;
 import java.io.IOException;
 import java.util.List;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
+import org.jsoup.parser.Tag;
 import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -65,7 +68,9 @@ public class StatsClient {
           String seriesPlayerid = uriParts[uriParts.length - 1];
           String seriesTeamid = uriParts[uriParts.length - 3];
           String seriesName = link.get().text();
-          int seriesYear = Integer.parseInt(id.split("-")[0]);
+          Pattern p = Pattern.compile("^.*(2[0-9]{3}).*$");
+          Matcher m = p.matcher(id);
+          int seriesYear = m.matches() ? Integer.parseInt(m.group(1)) : 2000;
           LOG.info("Fetching stats for {} (id={}) in {}", playerName, seriesPlayerid, seriesName);
           Document doc = getHtmlDoc(uri);
 
@@ -104,7 +109,12 @@ public class StatsClient {
   }
 
   private Optional<String> parseTeamFlagUrl(final Document doc) {
-    return doc.getElementsByClass("flag-icon").stream().map(e -> e.attr("src")).findFirst();
+    Optional<String> findFirst =
+        doc.getElementsByClass("flag-icon").stream()
+            .filter(e -> e.tag().equals(Tag.valueOf("img")))
+            .map(e -> e.attr("src"))
+            .findFirst();
+    return findFirst;
   }
 
   private Optional<String> parsePlayerImageUrl(final Document doc) {
