@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Optional;
 import org.immutables.value.Value.Default;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -17,4 +18,8 @@ public interface AllStats {
   default Map<String, SeriesStats> seriesStats() {
     return Collections.emptyMap();
   }
+
+  Optional<BatterStats> careerBatting();
+
+  Optional<PitcherStats> careerPitching();
 }

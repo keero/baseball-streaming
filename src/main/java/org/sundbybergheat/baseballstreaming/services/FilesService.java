@@ -2,10 +2,14 @@ package org.sundbybergheat.baseballstreaming.services;
 
 import java.io.IOException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.clients.FilesClient;
@@ -20,6 +24,9 @@ import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
 
 public class FilesService {
   private static final Logger LOG = LoggerFactory.getLogger(FilesService.class);
+
+  private static final int MINIMUM_GAMES_BATTING_STATS = 2;
+  private static final int MINIMUM_APPEARANCES_PITCHING_STATS = 3;
 
   private Play play = null;
 
@@ -38,6 +45,15 @@ public class FilesService {
   }
 
   public void initResources() throws IOException {
+
+    if (!filesClient.fileExists("baseball-streaming-all-overlays.json")) {
+      String obsScenes =
+          IOUtils.resourceToString(
+              "/obs/baseball-streaming-all-overlays.json", StandardCharsets.UTF_8);
+      filesClient.writeStringToFile(
+          "baseball-streaming-all-overlays.json",
+          obsScenes.replace("[PATH_TO_OBS_RESOURCE_DIR]", filesClient.getResourceBasePath()));
+    }
     filesClient.copyFileFromResource("/bases/ooo.png", "bases/ooo.png");
     filesClient.copyFileFromResource("/bases/oox.png", "bases/oox.png");
     filesClient.copyFileFromResource("/bases/oxo.png", "bases/oxo.png");
@@ -165,6 +181,9 @@ public class FilesService {
     filesClient.writeStringToFile(
         subdir + "/count.txt", pitcher.pitches().map(p -> p.toString()).orElse(""));
 
+    filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
+    filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
+    filesClient.writeStringToFile(subdir + "/lastname.txt", pitcher.lastName());
     if (!stats.containsKey(pitcher.playerId())) {
       stats.put(
           pitcher.playerId(),
@@ -172,30 +191,34 @@ public class FilesService {
               pitcher.name(), pitcher.playerId(), pitcher.teamId(), seriesId));
     }
 
-    SeriesStats seriesStats = stats.get(pitcher.playerId()).seriesStats().get(seriesId);
-    Optional<PitcherStats> maybePitcherStats = seriesStats.pitching();
-    if (maybePitcherStats.isEmpty()) {
-      LOG.warn("No pitching stats found for {}, setting default values.", pitcher.name());
+    AllStats allStats = stats.get(pitcher.playerId());
+
+    // Update images
+    if (allStats.seriesStats().containsKey(seriesId)) {
+      updateImages(
+          subdir, allStats.seriesStats().get(seriesId), pitcher.teamId(), pitcher.playerId());
+    } else {
+      filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
+      filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
+    }
+
+    SeriesStats selectedSeries = selectSeriesPitching(allStats, seriesId);
+
+    if (selectedSeries == null || selectedSeries.pitching().isEmpty()) {
+      LOG.warn("No stats for pitcher {} (id={})", pitcher.name(), pitcher.playerId());
       filesClient.writeStringToFile(subdir + "/era.txt", "-");
-      filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
-      filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
       filesClient.writeStringToFile(subdir + "/games.txt", "0");
       filesClient.writeStringToFile(subdir + "/hits.txt", "0");
       filesClient.writeStringToFile(subdir + "/hrs-allowed.txt", "0");
       filesClient.writeStringToFile(subdir + "/innings.txt", "0.0");
-      filesClient.writeStringToFile(subdir + "/lastname.txt", pitcher.lastName());
       filesClient.writeStringToFile(subdir + "/strikeouts.txt", "0");
       filesClient.writeStringToFile(subdir + "/walks.txt", "0");
       filesClient.writeStringToFile(subdir + "/wins-losses.txt", "0 - 0");
-
-      updateImages(subdir + "", seriesStats, pitcher.teamId(), pitcher.playerId());
       return;
     }
-    PitcherStats pitcherStats = maybePitcherStats.get();
+    PitcherStats pitcherStats = selectedSeries.pitching().get();
 
     filesClient.writeStringToFile(subdir + "/era.txt", pitcherStats.era());
-    filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
-    filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
     filesClient.writeStringToFile(
         subdir + "/games.txt", Integer.toString(pitcherStats.appearances()));
     filesClient.writeStringToFile(
@@ -203,7 +226,6 @@ public class FilesService {
     filesClient.writeStringToFile(
         subdir + "/hrs-allowed.txt", Integer.toString(pitcherStats.homerunsAllowed()));
     filesClient.writeStringToFile(subdir + "/innings.txt", pitcherStats.inningsPitched());
-    filesClient.writeStringToFile(subdir + "/lastname.txt", pitcher.lastName());
     filesClient.writeStringToFile(
         subdir + "/strikeouts.txt", Integer.toString(pitcherStats.strikeouts()));
     filesClient.writeStringToFile(
@@ -211,8 +233,45 @@ public class FilesService {
     filesClient.writeStringToFile(
         subdir + "/wins-losses.txt",
         String.format("%d - %d", pitcherStats.wins(), pitcherStats.losses()));
+    String statsForSeries = "";
+    if (selectedSeries.otherSeries()) {
+      statsForSeries = String.format("Stats for %s", selectedSeries.seriesName());
+    } else {
+      statsForSeries =
+          selectedSeries.id().equals(seriesId)
+              ? "Stats for this season"
+              : String.format(
+                  "Stats for %s season",
+                  selectedSeries.year().map(y -> y.toString()).orElse("other"));
+    }
+    filesClient.writeStringToFile(subdir + "/stats_for_series.txt", statsForSeries);
 
-    updateImages(subdir + "", seriesStats, pitcher.teamId(), pitcher.playerId());
+    filesClient.writeStringToFile(
+        subdir + "/career/era.txt", allStats.careerPitching().map(s -> s.era()).orElse("-"));
+    filesClient.writeStringToFile(
+        subdir + "/career/games.txt",
+        allStats.careerPitching().map(s -> Integer.toString(s.appearances())).orElse("0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/hits.txt",
+        allStats.careerPitching().map(s -> Integer.toString(s.hitsAllowed())).orElse("0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/hrs-allowed.txt",
+        allStats.careerPitching().map(s -> Integer.toString(s.homerunsAllowed())).orElse("0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/innings.txt",
+        allStats.careerPitching().map(s -> s.inningsPitched()).orElse("0.0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/strikeouts.txt",
+        allStats.careerPitching().map(s -> Integer.toString(s.strikeouts())).orElse("0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/walks.txt",
+        allStats.careerPitching().map(s -> Integer.toString(s.walksAllowed())).orElse("0"));
+    filesClient.writeStringToFile(
+        subdir + "/career/wins-losses.txt",
+        allStats
+            .careerPitching()
+            .map(s -> String.format("%d - %d", s.wins(), s.losses()))
+            .orElse("0 - 0"));
   }
 
   private void updateCurrentBatter() throws IOException, StatsException {
@@ -289,17 +348,28 @@ public class FilesService {
           batter.playerId(),
           statsClient.getPlayerStats(batter.name(), batter.playerId(), batter.teamId(), seriesId));
     }
-    Map<String, SeriesStats> seriesStats = stats.get(batter.playerId()).seriesStats();
-    SeriesStats selectedSeries = selectSeries(seriesStats, seriesId);
 
-    if (selectedSeries == null) {
+    AllStats allStats = stats.get(batter.playerId());
+
+    // Update images
+    if (allStats.seriesStats().containsKey(seriesId)) {
+      updateImages(
+          subdir, allStats.seriesStats().get(seriesId), batter.teamId(), batter.playerId());
+    } else {
+      filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
+      filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
+    }
+
+    SeriesStats selectedSeries = selectSeriesBatting(allStats, seriesId);
+    filesClient.writeStringToFile(
+        subdir + "/batting.txt", BatterTools.batterNarrative(batter, stats, seriesId, play));
+
+    if (selectedSeries == null || selectedSeries.batting().isEmpty()) {
       LOG.warn("No stats for batter {} (id={})", batter.name(), batter.playerId());
       filesClient.writeStringToFile(subdir + "/avg.txt", "");
       filesClient.writeStringToFile(subdir + "/ops.txt", "");
       filesClient.writeStringToFile(subdir + "/hr.txt", "");
       filesClient.writeStringToFile(subdir + "/rbi.txt", "");
-      filesClient.writeStringToFile(
-          subdir + "/batting.txt", BatterTools.batterNarrative(batter, null, play));
       filesClient.writeStringToFile(subdir + "/stats_for_series.txt", "");
       return;
     }
@@ -314,29 +384,59 @@ public class FilesService {
     filesClient.writeStringToFile(
         subdir + "/batting.txt", BatterTools.batterNarrative(batter, selectedSeries, play));
 
-    int thisYear = Integer.parseInt(seriesId.split("-")[0]);
-
-    String statsForSeries = null;
+    String statsForSeries = "";
     if (selectedSeries.otherSeries()) {
-      statsForSeries = selectedSeries.seriesName();
+      statsForSeries = String.format("Stats for %s", selectedSeries.seriesName());
     } else {
       statsForSeries =
-          selectedSeries.year() == thisYear
-              ? "This Season"
-              : String.format("%d Season", selectedSeries.year());
+          selectedSeries.id().equals(seriesId)
+              ? "Stats for this season"
+              : String.format(
+                  "Stats for %s season",
+                  selectedSeries.year().map(y -> y.toString()).orElse("other"));
     }
     filesClient.writeStringToFile(subdir + "/stats_for_series.txt", statsForSeries);
 
-    updateImages(subdir, selectedSeries, batter.teamId(), batter.playerId());
+    filesClient.writeStringToFile(
+        subdir + "/career/games.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.games())).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/avg.txt",
+        allStats.careerBatting().map(s -> s.battingAverage()).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/ops.txt",
+        allStats.careerBatting().map(s -> s.onBasePercentagePlusSlugging()).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/hr.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.homeruns())).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/rbi.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.runsBattedIn())).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/hits.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.hits())).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/atbats.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.atBats())).orElse(""));
+    filesClient.writeStringToFile(
+        subdir + "/career/sb.txt",
+        allStats.careerBatting().map(s -> Integer.toString(s.stolenBases())).orElse(""));
   }
 
-  private SeriesStats selectSeries(Map<String, SeriesStats> seriesStats, final String seriesId) {
+  private SeriesStats selectSeriesBatting(final AllStats stats, final String seriesId) {
 
-    int thisYear = Integer.parseInt(seriesId.split("-")[0]);
+    Matcher matcher = Pattern.compile("^.*(2[0-9]{3}).*$").matcher(seriesId);
+    Map<String, SeriesStats> seriesStats = stats.seriesStats();
+    Optional<Integer> thisYear =
+        matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
 
     // Select this season if stats are available
     if (seriesStats.containsKey(seriesId)
-        && seriesStats.get(seriesId).batting().map(s -> s.games() > 0).orElse(false)) {
+        && seriesStats
+            .get(seriesId)
+            .batting()
+            .map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS)
+            .orElse(false)) {
       return seriesStats.get(seriesId);
     }
 
@@ -344,18 +444,25 @@ public class FilesService {
     Optional<SeriesStats> lastSeason =
         seriesStats.values().stream()
             .filter(s -> !s.otherSeries())
-            .sorted((a, b) -> b.year() - a.year())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
             .findFirst();
-    if (lastSeason.map(s -> s.batting().map(b -> b.games() > 0).orElse(false)).orElse(false)) {
+    if (lastSeason
+        .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
+        .orElse(false)) {
       return lastSeason.get();
     }
 
-    // else try to find other series stats
+    // else try to find other series stats this year
     Optional<SeriesStats> otherSeries =
         seriesStats.values().stream()
-            .filter(s -> s.year() == thisYear && s.otherSeries())
+            .filter(
+                s ->
+                    s.year().filter(y -> y.equals(thisYear.orElse(0))).isPresent()
+                        && s.otherSeries())
             .findFirst();
-    if (otherSeries.map(s -> s.batting().map(b -> b.games() > 0).orElse(false)).orElse(false)) {
+    if (otherSeries
+        .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
+        .orElse(false)) {
       return otherSeries.get();
     }
 
@@ -363,17 +470,94 @@ public class FilesService {
     Optional<SeriesStats> otherSeriesLastSeason =
         seriesStats.values().stream()
             .filter(s -> s.otherSeries())
-            .sorted((a, b) -> b.year() - a.year())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
             .findFirst();
     if (otherSeriesLastSeason
-        .map(s -> s.batting().map(b -> b.games() > 0).orElse(false))
+        .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
         .orElse(false)) {
       return otherSeriesLastSeason.get();
     }
 
     // else pick any stats
     return seriesStats.values().stream()
-        .filter(s -> s.batting().map(b -> b.games() > 0).orElse(false))
+        .filter(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
+        .findFirst()
+        .orElse(null);
+  }
+
+  private SeriesStats selectSeriesPitching(final AllStats stats, final String seriesId) {
+
+    Matcher matcher = Pattern.compile("^.*(2[0-9]{3}).*$").matcher(seriesId);
+    Map<String, SeriesStats> seriesStats = stats.seriesStats();
+    Optional<Integer> thisYear =
+        matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
+
+    // Select this season if stats are available
+    if (seriesStats.containsKey(seriesId)
+        && seriesStats
+            .get(seriesId)
+            .pitching()
+            .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
+            .orElse(false)) {
+      return seriesStats.get(seriesId);
+    }
+
+    // else try to find previous season stats
+    Optional<SeriesStats> lastSeason =
+        seriesStats.values().stream()
+            .filter(s -> !s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .findFirst();
+    if (lastSeason
+        .map(
+            s ->
+                s.pitching()
+                    .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
+                    .orElse(false))
+        .orElse(false)) {
+      return lastSeason.get();
+    }
+
+    // else try to find other series stats this year
+    Optional<SeriesStats> otherSeries =
+        seriesStats.values().stream()
+            .filter(
+                s ->
+                    s.year().filter(y -> y.equals(thisYear.orElse(0))).isPresent()
+                        && s.otherSeries())
+            .findFirst();
+    if (otherSeries
+        .map(
+            s ->
+                s.pitching()
+                    .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
+                    .orElse(false))
+        .orElse(false)) {
+      return otherSeries.get();
+    }
+
+    // else try to find other series previous season stats
+    Optional<SeriesStats> otherSeriesLastSeason =
+        seriesStats.values().stream()
+            .filter(s -> s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .findFirst();
+    if (otherSeriesLastSeason
+        .map(
+            s ->
+                s.pitching()
+                    .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
+                    .orElse(false))
+        .orElse(false)) {
+      return otherSeriesLastSeason.get();
+    }
+
+    // else pick stats with most appearances
+    return seriesStats.values().stream()
+        .sorted(
+            (s1, s2) ->
+                s2.pitching().map(p -> p.appearances()).orElse(0)
+                    - s1.pitching().map(p -> p.appearances()).orElse(0))
         .findFirst()
         .orElse(null);
   }
@@ -421,6 +605,10 @@ public class FilesService {
     } else {
       filesClient.copyFile(playerImagePath, subdir + "/image.png");
     }
+
+    filesClient.copyFile(
+        teamId.equals(play.eventHomeId()) ? "home_color.png" : "away_color.png",
+        subdir + "/team_color.png");
   }
 
   private void updateLineups() throws IOException, StatsException {

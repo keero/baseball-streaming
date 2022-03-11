@@ -1,7 +1,10 @@
 package org.sundbybergheat.baseballstreaming.clients;
 
 import java.io.IOException;
+import java.net.URL;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -17,11 +20,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStatsImpl;
-import org.sundbybergheat.baseballstreaming.models.stats.AllStatsImpl.Builder;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStatsImpl;
+import org.sundbybergheat.baseballstreaming.models.stats.SeriesId;
+import org.sundbybergheat.baseballstreaming.models.stats.SeriesIdImpl;
+import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.StatsException;
 
@@ -41,16 +46,18 @@ public class StatsClient {
   public AllStats getPlayerStats(
       final String playerName, final String playerId, final String teamId, final String seriesId)
       throws StatsException, IOException {
-    Builder builder = AllStatsImpl.builder();
+    Map<String, SeriesStats> seriesStats = new HashMap<String, SeriesStats>();
     String thisUri = String.format(PLAYER_STATS_URL, baseUrl, seriesId, teamId, playerId);
 
-    int thisYear = Integer.parseInt(seriesId.split("-")[0]);
+    SeriesId thisSeriesId = parseSeriesId(seriesId);
+    Optional<Integer> thisYear = thisSeriesId.year();
 
     LOG.info("Fetching stats for {} (id={}) in {}", playerName, playerId, seriesId);
     Document thisDoc = getHtmlDoc(thisUri);
-    builder.putSeriesStats(
+    seriesStats.put(
         seriesId,
         parsePlayerSeriesStats(thisDoc, playerId, teamId)
+            .id(seriesId)
             .seriesName(seriesId)
             .year(thisYear)
             .build());
@@ -62,29 +69,92 @@ public class StatsClient {
       for (Element element : rows) {
         Optional<Element> link = element.getElementsByTag("a").stream().findFirst();
         if (link.isPresent()) {
+          String otherName = link.get().text();
           String uri = link.get().absUrl("href");
-          String[] uriParts = uri.split("/");
-          String id = uriParts[uriParts.length - 5];
-          String seriesPlayerid = uriParts[uriParts.length - 1];
-          String seriesTeamid = uriParts[uriParts.length - 3];
-          String seriesName = link.get().text();
-          Pattern p = Pattern.compile("^.*(2[0-9]{3}).*$");
-          Matcher m = p.matcher(id);
-          int seriesYear = m.matches() ? Integer.parseInt(m.group(1)) : 2000;
-          LOG.info("Fetching stats for {} (id={}) in {}", playerName, seriesPlayerid, seriesName);
-          Document doc = getHtmlDoc(uri);
+          String path = new URL(uri).getPath();
 
-          builder.putSeriesStats(
-              id,
-              parsePlayerSeriesStats(doc, seriesPlayerid, seriesTeamid)
-                  .seriesName(seriesName)
-                  .year(seriesYear)
-                  .otherSeries(!id.substring(5).equalsIgnoreCase(seriesId.substring(5)))
+          Pattern pathPattern1 =
+              Pattern.compile("^/+([^/]+)/events/([^/]+)/teams/([^/]+)/players/([^/]+)$");
+          Pattern pathPattern2 =
+              Pattern.compile("^/+([^/]+)/([^/]+)/teams/([^/]+)/players/([^/]+)$");
+          Matcher pathMatcher1 = pathPattern1.matcher(path);
+          Matcher pathMatcher2 = pathPattern2.matcher(path);
+
+          String lang;
+          SeriesId otherSeriesId;
+          String otherTeamId;
+          String otherPlayerId;
+
+          if (pathMatcher1.matches()) {
+            lang = pathMatcher1.group(1);
+            otherSeriesId = parseSeriesId(pathMatcher1.group(2));
+            otherTeamId = pathMatcher1.group(3);
+            otherPlayerId = pathMatcher1.group(4);
+          } else if (pathMatcher2.matches()) {
+            lang = "en";
+            otherSeriesId = parseSeriesId(pathMatcher2.group(2));
+            otherTeamId = pathMatcher2.group(3);
+            otherPlayerId = pathMatcher2.group(4);
+          } else {
+            LOG.warn(
+                "Could not extract info from path {} (unrecognized pattern). Skipping stats for {}",
+                path,
+                otherName);
+            continue;
+          }
+
+          final Optional<Integer> otherYear = otherSeriesId.year();
+          final boolean sameSeries =
+              thisSeriesId.prefix().isPresent()
+                  && thisSeriesId.postfix().isPresent()
+                  && thisSeriesId.prefix().equals(otherSeriesId.prefix())
+                  && thisSeriesId.postfix().equals(otherSeriesId.postfix());
+
+          LOG.info("Fetching stats for {} (id={}) in {}", playerName, otherPlayerId, otherName);
+
+          String patchedUri = uri;
+
+          if (!"en".equals(lang)) {
+            String patchedPath =
+                String.format(
+                    "/en/events/%s/teams/%s/players/%s",
+                    otherSeriesId.id(), otherTeamId, otherPlayerId);
+            patchedUri = uri.replace(path, patchedPath);
+          }
+
+          Document doc = getHtmlDoc(patchedUri);
+
+          seriesStats.put(
+              otherSeriesId.id(),
+              parsePlayerSeriesStats(doc, otherPlayerId, otherTeamId)
+                  .id(otherSeriesId.id())
+                  .seriesName(otherName)
+                  .year(otherYear)
+                  .otherSeries(!sameSeries)
                   .build());
         }
       }
     }
 
+    return AllStatsImpl.builder()
+        .seriesStats(seriesStats)
+        .careerBatting(CareerStatsTools.getCareerBattingStats(seriesStats.values()))
+        .careerPitching(CareerStatsTools.getCareerPitchingStats(seriesStats.values()))
+        .build();
+  }
+
+  private SeriesId parseSeriesId(final String seriesId) {
+
+    SeriesIdImpl.Builder builder = SeriesIdImpl.builder().id(seriesId);
+    final Pattern pattern = Pattern.compile("^(.*)(2[0-9]{3})(.*)$");
+    final Matcher matcher = pattern.matcher(seriesId);
+
+    if (matcher.matches()) {
+      builder
+          .prefix(matcher.group(1))
+          .year(Integer.parseInt(matcher.group(2)))
+          .postfix(matcher.group(3));
+    }
     return builder.build();
   }
 
@@ -194,6 +264,12 @@ public class StatsClient {
 
     List<String> totals = List.of(row.get().text().split(" "));
 
+    String era = totals.get(3);
+    String inningsPitched = totals.get(8);
+    int earnedRunsAllowed = Integer.parseInt(totals.get(11));
+
+    int gameLength = getGameLength(era, inningsPitched, earnedRunsAllowed);
+
     PitcherStatsImpl.Builder builder =
         PitcherStatsImpl.builder()
             .playerId(playerId)
@@ -201,15 +277,15 @@ public class StatsClient {
             .appearances(appearances)
             .wins(Integer.parseInt(totals.get(1)))
             .losses(Integer.parseInt(totals.get(2)))
-            .era(totals.get(3))
+            .era(era)
             .gamesStarted(Integer.parseInt(totals.get(4)))
             .saves(Integer.parseInt(totals.get(5)))
             .completeGames(Integer.parseInt(totals.get(6)))
             .shutouts(Integer.parseInt(totals.get(7)))
-            .inningsPitched(totals.get(8))
+            .inningsPitched(inningsPitched)
             .hitsAllowed(Integer.parseInt(totals.get(9)))
             .runsAllowed(Integer.parseInt(totals.get(10)))
-            .earnedRunsAllowed(Integer.parseInt(totals.get(11)))
+            .earnedRunsAllowed(earnedRunsAllowed)
             .walksAllowed(Integer.parseInt(totals.get(12)))
             .strikeouts(Integer.parseInt(totals.get(13)))
             .doublesAllowed(Integer.parseInt(totals.get(14)))
@@ -223,7 +299,8 @@ public class StatsClient {
             .sacrificeFliesAllowed(Integer.parseInt(totals.get(22)))
             .sacrificeHitsAllowed(Integer.parseInt(totals.get(23)))
             .groundOuts(Integer.parseInt(totals.get(24)))
-            .flyOuts(Integer.parseInt(totals.get(25)));
+            .flyOuts(Integer.parseInt(totals.get(25)))
+            .gameLength(gameLength);
 
     return Optional.of(builder.build());
   }
@@ -248,5 +325,14 @@ public class StatsClient {
     }
     throw new StatsException(
         String.format("Unexpected response from %s, got %s", uri, responseString));
+  }
+
+  private int getGameLength(
+      final String era, final String inningsPitched, final int earnedRunsAllowed) {
+    double eraVal = Double.parseDouble(era);
+    String[] split = inningsPitched.split("\\.");
+    double inningsPitchedVal = Double.parseDouble(split[0]) + Double.parseDouble(split[1]) / 3.0;
+
+    return (int) Math.round(eraVal * inningsPitchedVal / earnedRunsAllowed);
   }
 }

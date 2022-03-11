@@ -3,10 +3,12 @@ package org.sundbybergheat.baseballstreaming.services;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
 import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScore;
@@ -59,6 +61,36 @@ public class BatterTools {
                     .walks(a.walks().orElse(0) + b.walks().orElse(0))
                     .build())
         .get();
+  }
+
+  public static String batterNarrative(
+      final BoxScore batter,
+      final Map<String, AllStats> stats,
+      final String seriesId,
+      final Play play) {
+    List<PlayData> batterPlays =
+        play.playData().stream()
+            .filter(
+                pd ->
+                    (pd.batter().startsWith("10") || pd.batter().startsWith("20"))
+                        && batter.playerId().equals(play.boxScore().get(pd.batter()).playerId()))
+            .sorted(
+                (a, b) -> {
+                  int atBatCompare = Integer.parseInt(b.atBat()) - Integer.parseInt(a.atBat());
+                  if (atBatCompare != 0) {
+                    return atBatCompare;
+                  }
+                  return Long.valueOf(b.timestamp() - a.timestamp()).intValue();
+                })
+            .collect(Collectors.toList());
+    List<PlayData> plateApperances =
+        batterPlays.stream()
+            .filter(bp -> bp.text().toLowerCase().startsWith(batter.name().toLowerCase()))
+            .collect(Collectors.toList());
+    if (plateApperances.size() > 0) {
+      return summaryOfGame(batter, plateApperances);
+    }
+    return summaryOfSeries(stats, batter.playerId(), seriesId);
   }
 
   public static String batterNarrative(
@@ -235,6 +267,12 @@ public class BatterTools {
       summary.add("RUN");
     }
     return String.join(", ", summary);
+  }
+
+  private static String summaryOfSeries(
+      final Map<String, AllStats> stats, final String playerId, final String seriesId) {
+
+    return summaryOfSeries(stats.get(playerId).seriesStats().get(seriesId));
   }
 
   private static String summaryOfSeries(final SeriesStats seriesStats) {

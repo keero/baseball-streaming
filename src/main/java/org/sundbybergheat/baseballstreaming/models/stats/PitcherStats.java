@@ -15,6 +15,8 @@ public interface PitcherStats {
 
   String teamId();
 
+  int gameLength();
+
   int wins();
 
   int losses();

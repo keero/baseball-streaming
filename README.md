@@ -64,10 +64,12 @@ The application will output what is currently happening live. If you want to tes
 
 ```
 .
+├── away_color.png
 ├── away_errors.txt
 ├── away_hits.txt
 ├── away_score.txt
 ├── away_team.txt
+├── baseball-streaming-all-overlays.json
 ├── bases
 │   ├── ooo.png
 │   ├── oox.png
@@ -82,6 +84,15 @@ The application will output what is currently happening live. If you want to tes
 ├── current_batter
 │   ├── avg.txt
 │   ├── batting.txt
+│   ├── career
+│   │   ├── atbats.txt
+│   │   ├── avg.txt
+│   │   ├── games.txt
+│   │   ├── hits.txt
+│   │   ├── hr.txt
+│   │   ├── ops.txt
+│   │   ├── rbi.txt
+│   │   └── sb.txt
 │   ├── firstname.txt
 │   ├── flag.png
 │   ├── fullname.txt
@@ -91,8 +102,18 @@ The application will output what is currently happening live. If you want to tes
 │   ├── ops.txt
 │   ├── pos.txt
 │   ├── rbi.txt
-│   └── stats_for_series.txt
+│   ├── stats_for_series.txt
+│   └── team_color.png
 ├── current_pitcher
+│   ├── career
+│   │   ├── era.txt
+│   │   ├── games.txt
+│   │   ├── hits.txt
+│   │   ├── hrs-allowed.txt
+│   │   ├── innings.txt
+│   │   ├── strikeouts.txt
+│   │   ├── walks.txt
+│   │   └── wins-losses.txt
 │   ├── count.txt
 │   ├── era.txt
 │   ├── firstname.txt
@@ -104,9 +125,12 @@ The application will output what is currently happening live. If you want to tes
 │   ├── image.png
 │   ├── innings.txt
 │   ├── lastname.txt
+│   ├── stats_for_series.txt
 │   ├── strikeouts.txt
+│   ├── team_color.png
 │   ├── walks.txt
 │   └── wins-losses.txt
+├── home_color.png
 ├── home_errors.txt
 ├── home_hits.txt
 ├── home_score.txt
@@ -114,6 +138,15 @@ The application will output what is currently happening live. If you want to tes
 ├── inhole_batter
 │   ├── avg.txt
 │   ├── batting.txt
+│   ├── career
+│   │   ├── atbats.txt
+│   │   ├── avg.txt
+│   │   ├── games.txt
+│   │   ├── hits.txt
+│   │   ├── hr.txt
+│   │   ├── ops.txt
+│   │   ├── rbi.txt
+│   │   └── sb.txt
 │   ├── firstname.txt
 │   ├── flag.png
 │   ├── fullname.txt
@@ -123,7 +156,8 @@ The application will output what is currently happening live. If you want to tes
 │   ├── ops.txt
 │   ├── pos.txt
 │   ├── rbi.txt
-│   └── stats_for_series.txt
+│   ├── stats_for_series.txt
+│   └── team_color.png
 ├── inning_half.txt
 ├── inning_text.txt
 ├── inning.txt
@@ -132,6 +166,15 @@ The application will output what is currently happening live. If you want to tes
 │   │   ├── 1
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -141,10 +184,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 2
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -154,10 +207,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 3
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -167,10 +230,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 4
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -180,10 +253,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 5
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -193,10 +276,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 6
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -206,10 +299,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 7
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -219,10 +322,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 8
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -232,10 +345,20 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   ├── 9
 │   │   │   ├── avg.txt
 │   │   │   ├── batting.txt
+│   │   │   ├── career
+│   │   │   │   ├── atbats.txt
+│   │   │   │   ├── avg.txt
+│   │   │   │   ├── games.txt
+│   │   │   │   ├── hits.txt
+│   │   │   │   ├── hr.txt
+│   │   │   │   ├── ops.txt
+│   │   │   │   ├── rbi.txt
+│   │   │   │   └── sb.txt
 │   │   │   ├── firstname.txt
 │   │   │   ├── flag.png
 │   │   │   ├── fullname.txt
@@ -245,8 +368,18 @@ The application will output what is currently happening live. If you want to tes
 │   │   │   ├── ops.txt
 │   │   │   ├── pos.txt
 │   │   │   ├── rbi.txt
-│   │   │   └── stats_for_series.txt
+│   │   │   ├── stats_for_series.txt
+│   │   │   └── team_color.png
 │   │   └── pitcher
+│   │       ├── career
+│   │       │   ├── era.txt
+│   │       │   ├── games.txt
+│   │       │   ├── hits.txt
+│   │       │   ├── hrs-allowed.txt
+│   │       │   ├── innings.txt
+│   │       │   ├── strikeouts.txt
+│   │       │   ├── walks.txt
+│   │       │   └── wins-losses.txt
 │   │       ├── count.txt
 │   │       ├── era.txt
 │   │       ├── firstname.txt
@@ -258,13 +391,24 @@ The application will output what is currently happening live. If you want to tes
 │   │       ├── image.png
 │   │       ├── innings.txt
 │   │       ├── lastname.txt
+│   │       ├── stats_for_series.txt
 │   │       ├── strikeouts.txt
+│   │       ├── team_color.png
 │   │       ├── walks.txt
 │   │       └── wins-losses.txt
 │   └── home
 │       ├── 1
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -274,10 +418,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 2
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -287,10 +441,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 3
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -300,10 +464,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 4
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -313,10 +487,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 5
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -326,10 +510,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 6
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -339,10 +533,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 7
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -352,10 +556,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 8
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -365,10 +579,20 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       ├── 9
 │       │   ├── avg.txt
 │       │   ├── batting.txt
+│       │   ├── career
+│       │   │   ├── atbats.txt
+│       │   │   ├── avg.txt
+│       │   │   ├── games.txt
+│       │   │   ├── hits.txt
+│       │   │   ├── hr.txt
+│       │   │   ├── ops.txt
+│       │   │   ├── rbi.txt
+│       │   │   └── sb.txt
 │       │   ├── firstname.txt
 │       │   ├── flag.png
 │       │   ├── fullname.txt
@@ -378,8 +602,18 @@ The application will output what is currently happening live. If you want to tes
 │       │   ├── ops.txt
 │       │   ├── pos.txt
 │       │   ├── rbi.txt
-│       │   └── stats_for_series.txt
+│       │   ├── stats_for_series.txt
+│       │   └── team_color.png
 │       └── pitcher
+│           ├── career
+│           │   ├── era.txt
+│           │   ├── games.txt
+│           │   ├── hits.txt
+│           │   ├── hrs-allowed.txt
+│           │   ├── innings.txt
+│           │   ├── strikeouts.txt
+│           │   ├── walks.txt
+│           │   └── wins-losses.txt
 │           ├── count.txt
 │           ├── era.txt
 │           ├── firstname.txt
@@ -391,12 +625,23 @@ The application will output what is currently happening live. If you want to tes
 │           ├── image.png
 │           ├── innings.txt
 │           ├── lastname.txt
+│           ├── stats_for_series.txt
 │           ├── strikeouts.txt
+│           ├── team_color.png
 │           ├── walks.txt
 │           └── wins-losses.txt
 ├── ondeck_batter
 │   ├── avg.txt
 │   ├── batting.txt
+│   ├── career
+│   │   ├── atbats.txt
+│   │   ├── avg.txt
+│   │   ├── games.txt
+│   │   ├── hits.txt
+│   │   ├── hr.txt
+│   │   ├── ops.txt
+│   │   ├── rbi.txt
+│   │   └── sb.txt
 │   ├── firstname.txt
 │   ├── flag.png
 │   ├── fullname.txt
@@ -406,13 +651,40 @@ The application will output what is currently happening live. If you want to tes
 │   ├── ops.txt
 │   ├── pos.txt
 │   ├── rbi.txt
-│   └── stats_for_series.txt
+│   ├── stats_for_series.txt
+│   └── team_color.png
 ├── outs
 │   ├── 0.png
 │   ├── 1.png
 │   └── 2.png
 ├── outs.png
 └── team_resources
+    ├── colors
+    │   ├── ALB.png
+    │   ├── BRO.png
+    │   ├── CIT.png
+    │   ├── default_away.png
+    │   ├── default_home.png
+    │   ├── ENK.png
+    │   ├── ENS.png
+    │   ├── FRS.png
+    │   ├── GEF.png
+    │   ├── GOT.png
+    │   ├── KGA.png
+    │   ├── LEK.png
+    │   ├── MAL.png
+    │   ├── NIC.png
+    │   ├── ORE.png
+    │   ├── RAT.png
+    │   ├── SKE.png
+    │   ├── SKO.png
+    │   ├── SOD.png
+    │   ├── STO.png
+    │   ├── SUN.png
+    │   ├── SVL.png
+    │   ├── TRA.png
+    │   ├── UME.png
+    │   └── UPP.png
     ├── flags
     │   ├── 1234.png
     │   ├── 5678.png

@@ -23,6 +23,10 @@ public class FilesClient {
     this.resourceBasePath = resourceBasePath;
   }
 
+  public String getResourceBasePath() {
+    return resourceBasePath;
+  }
+
   public void copyFileFromResource(final String resourcePath, final String to) throws IOException {
     copyFileFromURL(IOUtils.resourceToURL(resourcePath), to);
   }
@@ -53,6 +57,7 @@ public class FilesClient {
     File target =
         new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
     if (!target.exists()) {
+      FileUtils.createParentDirectories(target);
       ImageIO.write(image, "png", target);
     }
   }
