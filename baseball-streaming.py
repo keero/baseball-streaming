@@ -14,7 +14,9 @@ def resource_path(relative_path):
 def runCommand(cmd):
     print("Streamer starting...")
     print(' '.join(cmd))
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    startupinfo = subprocess.STARTUPINFO()
+    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=startupinfo)
     for line in p.stdout:
         global stop_streaming
         if stop_streaming:
@@ -45,7 +47,7 @@ window = sg.Window('Baseball Streamer', layout,
 streamer_thread = None
 while True:
     if window.was_closed():
-        if streamer_thread and streamer_thread.isAlive():
+        if streamer_thread:
             stop_streaming = True
             streamer_thread.join()
         sys.exit(0)
@@ -53,17 +55,17 @@ while True:
     if event == 'Clear':
         window['output_area'].update('')
     if event == 'Exit':
-        if streamer_thread and streamer_thread.isAlive():
+        if streamer_thread:
             stop_streaming = True
             streamer_thread.join()
         sys.exit(0)
     if event == 'Stop':
-        if streamer_thread and streamer_thread.isAlive():
+        if streamer_thread:
             stop_streaming = True
             streamer_thread.join()
         print('Streamer stopped!')
     if event == 'Start streaming':
-        if streamer_thread and streamer_thread.isAlive():
+        if streamer_thread:
             stop_streaming = True
             streamer_thread.join()
         if values['live']:
