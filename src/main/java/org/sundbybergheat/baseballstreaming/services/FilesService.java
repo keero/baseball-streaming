@@ -164,15 +164,15 @@ public class FilesService {
   }
 
   private void updateCurrentPitcher() throws IOException, StatsException {
-    String prefix = play.situation().currentInning().startsWith("TOP") ? "29" : "19";
-    String key =
-        play.boxScore().keySet().stream()
-            .filter(k -> k.startsWith(prefix))
-            .sorted((a, b) -> Integer.parseInt(b) - Integer.parseInt(a))
+    BoxScore pitcher =
+        play.boxScore().entrySet().stream()
+            .filter(
+                kv ->
+                    kv.getValue().playerId().equals(play.situation().pitcherId())
+                        && (kv.getKey().startsWith("19") || kv.getKey().startsWith("29")))
             .findFirst()
+            .map(kv -> kv.getValue())
             .get();
-    BoxScore pitcher = play.boxScore().get(key);
-
     updatePitcher(pitcher, "current_pitcher");
   }
 

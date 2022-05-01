@@ -6,8 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
@@ -17,8 +15,6 @@ import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
 import org.sundbybergheat.baseballstreaming.models.wbsc.PlayData;
 
 public class BatterTools {
-  private static final Logger LOG = LoggerFactory.getLogger(BatterTools.class);
-
   public static BoxScore aggregatedBoxScore(final String playerId, final Play play) {
 
     return play.boxScore().entrySet().stream()
