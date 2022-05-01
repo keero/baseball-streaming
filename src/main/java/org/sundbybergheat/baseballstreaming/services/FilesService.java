@@ -275,13 +275,8 @@ public class FilesService {
   }
 
   private void updateCurrentBatter() throws IOException, StatsException {
-    String key =
-        play.playData().stream()
-            .sorted((a, b) -> Integer.parseInt(b.atBat()) - Integer.parseInt(a.atBat()))
-            .findFirst()
-            .get()
-            .batter();
-    BoxScore batter = BatterTools.aggregatedBoxScore(play.boxScore().get(key).playerId(), play);
+    String batterId = play.situation().batterId();
+    BoxScore batter = BatterTools.aggregatedBoxScore(batterId, play);
     updateBatter(batter, "current_batter");
   }
 
