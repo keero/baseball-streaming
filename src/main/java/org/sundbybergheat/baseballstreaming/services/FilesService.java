@@ -626,11 +626,45 @@ public class FilesService {
       updateBatter(homeLineup.get(order - 1), "lineups/home/" + order);
     }
 
+    for (BoxScore batter : homeLineup) {
+      String position =
+          batter
+              .position()
+              .map(
+                  s -> {
+                    String[] split = s.split("/");
+                    return split.length > 0 ? split[split.length - 1] : "";
+                  })
+              .orElse("");
+      if (isValidPosition(position)) {
+        updateBatter(batter, "lineups/home/" + position);
+      }
+    }
+
     for (int order = 1; order < 10; order += 1) {
       updateBatter(awayLineup.get(order - 1), "lineups/away/" + order);
     }
 
+    for (BoxScore batter : awayLineup) {
+      String position =
+          batter
+              .position()
+              .map(
+                  s -> {
+                    String[] split = s.split("/");
+                    return split.length > 0 ? split[split.length - 1] : "";
+                  })
+              .orElse("");
+      if (isValidPosition(position)) {
+        updateBatter(batter, "lineups/away/" + position);
+      }
+    }
+
     updatePitcher(LineupTools.getHomePitcher(play), "lineups/home/pitcher");
     updatePitcher(LineupTools.getAwayPitcher(play), "lineups/away/pitcher");
+  }
+
+  private boolean isValidPosition(final String position) {
+    return List.of("P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF").contains(position);
   }
 }
