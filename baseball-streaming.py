@@ -22,7 +22,7 @@ def runCommand(cmd):
         if stop_streaming:
             p.kill()
             break
-        print(line.decode().rstrip())
+        print(line.decode(errors='ignore').rstrip())
 
 
 sg.theme('SystemDefault')
