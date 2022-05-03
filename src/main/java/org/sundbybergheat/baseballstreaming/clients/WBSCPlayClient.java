@@ -22,7 +22,7 @@ public class WBSCPlayClient {
     this.baseUrl = baseUrl;
   }
 
-  public int getLatestPlay(final String gameId) throws IOException, WBSCException {
+  public Optional<Integer> getLatestPlay(final String gameId) throws IOException, WBSCException {
 
     String uri = String.format(LATEST_URL, baseUrl, gameId, Instant.now().toEpochMilli());
 
@@ -33,7 +33,11 @@ public class WBSCPlayClient {
     if (response.isSuccessful()) {
       String body = response.body().byteString().utf8();
       response.close();
-      return Integer.parseInt(body);
+      return Optional.of(Integer.parseInt(body));
+    }
+    if (response.code() == 404) {
+      // Game is not ready yet
+      return Optional.empty();
     }
     String responseString = response.toString();
     response.close();

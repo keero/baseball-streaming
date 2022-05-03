@@ -39,18 +39,32 @@ public class PlayByPlayService implements Runnable {
   @Override
   public void run() {
     String playText = "";
+    boolean waitingForGameToStart = false;
     while (!playText.startsWith("GAME OVER")) {
       try {
         Thread.sleep(delay);
+        Optional<Integer> maybeLatestPlay = client.getLatestPlay(gameId);
+        if (maybeLatestPlay.isEmpty()) {
+          if (runMode.equals(RunMode.replay)) {
+            LOG.error("Game {} not found, nothing to replay. Exiting.", gameId);
+            return;
+          }
+
+          if (!waitingForGameToStart) {
+            LOG.info("No game info available yet. Waiting for game {} to start.", gameId);
+            waitingForGameToStart = true;
+          }
+          continue;
+        }
         if (runMode.equals(RunMode.live)) {
-          int latestPlay = client.getLatestPlay(gameId);
+          int latestPlay = maybeLatestPlay.get();
           if (latestPlay == currentPlay) {
             continue;
           }
           currentPlay = latestPlay;
         } else {
           if (currentPlay == lastPlay) {
-            lastPlay = client.getLatestPlay(gameId);
+            lastPlay = maybeLatestPlay.get();
             currentPlay = 0;
             LOG.info(
                 "Replaying game {} with {} plays, updating with {} millisecond interval.",
