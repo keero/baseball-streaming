@@ -12,37 +12,47 @@ def resource_path(relative_path):
 
 
 def runCommand(cmd):
+    global streamer_process
     print("Streamer starting...")
     print(' '.join(cmd))
-    startupinfo = subprocess.STARTUPINFO()
-    startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=startupinfo)
-    for line in p.stdout:
-        global stop_streaming
-        if stop_streaming:
-            p.kill()
-            break
+    if hasattr(subprocess, 'STARTUPINFO'):
+        startupinfo = subprocess.STARTUPINFO()
+        startupinfo.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+        streamer_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=startupinfo)
+    else:
+        streamer_process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    for line in streamer_process.stdout:
         print(line.decode(errors='ignore').rstrip())
 
 
 sg.theme('SystemDefault')
 
-layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justification='right'), sg.Input(size=80, key='target_dir'), sg.FolderBrowse()],
+layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justification='right'),
+           sg.Input(default_text='/home/martinkero/Documents/personal/obs/resources', size=80, key='target_dir'),
+           sg.FolderBrowse()],
+          [sg.Text('Quick select series', size=(30, 1), justification='right'),
+           sg.Button(button_text='Elitserien'),
+           sg.Button(button_text='Juniorserien'),
+           sg.Button(button_text='Regionserien')],
+          [sg.Text('', size=(30, 1), justification='right'),
+           sg.Button(button_text='Softbollserien'),
+           sg.Button(button_text='Juniorserien Softboll')],
           [sg.Text('Series ID', size=(30, 1), justification='right'),
-           sg.Input(default_text='2022-elitserien-baseboll', size=20, key='series_id')],
+           sg.Input(default_text='2022-elitserien-baseboll', size=30, key='series_id')],
           [sg.Text('Game ID', size=(30, 1), justification='right'),
-           sg.Input(size=6, key='game_id')],
-          [sg.Radio('Live', key='live', group_id=1, default=True),
+           sg.Input(default_text='91830', size=6, key='game_id')],
+          [sg.Text('',size=(30, 1)),
+           sg.Radio('Live', key='live', group_id=1, default=True),
            sg.Radio('Replay', key='replay', group_id=1)],
           [sg.Submit(button_text='Start streaming', button_color='Green'),
            sg.Cancel(button_text='Stop', button_color='Red'),
            sg.Cancel(button_text='Exit'),
            sg.Cancel(button_text='Clear')],
           [sg.Text('Log:')],
-          [sg.Output(size=(160, 30), key='output_area', echo_stdout_stderr=True)]]
+          [sg.Output(size=(400, 30), expand_x=True, expand_y=True, key='output_area', echo_stdout_stderr=True)]]
 
-window = sg.Window('Baseball Streamer', layout,
-                   icon=resource_path('Sundbyberg-logo-1972-1.png'))
+window = sg.Window('Baseball Streaming', layout, resizable=True, size=(1024,768),
+                   icon=resource_path('256x256.png'))
 
 streamer_thread = None
 while True:
@@ -52,21 +62,34 @@ while True:
             streamer_thread.join()
         sys.exit(0)
     event, values = window.read()
+    if event == 'Elitserien':
+        window['series_id'].update('2022-elitserien-baseboll')
+    if event == 'Juniorserien':
+        window['series_id'].update('2022-juniorserien-baseboll')
+    if event == 'Regionserien':
+        window['series_id'].update('2022-regionserien-baseboll')
+    if event == 'Softbollserien':
+        window['series_id'].update('2022-softbollserien')
+    if event == 'Juniorserien Softboll':
+        window['series_id'].update('2022-juniorserien-softboll-2022')
     if event == 'Clear':
         window['output_area'].update('')
     if event == 'Exit':
         if streamer_thread:
-            stop_streaming = True
+            if streamer_process:
+                streamer_process.terminate()
             streamer_thread.join()
         sys.exit(0)
     if event == 'Stop':
         if streamer_thread:
-            stop_streaming = True
+            if streamer_process:
+                streamer_process.terminate()
             streamer_thread.join()
-        print('Streamer stopped!')
+        print("Streamer stopped.")
     if event == 'Start streaming':
         if streamer_thread:
-            stop_streaming = True
+            if streamer_process:
+                streamer_process.terminate()
             streamer_thread.join()
         if values['live']:
             mode = 'live'
@@ -88,5 +111,4 @@ while True:
                '-s', values['series_id'],
                '-g', values['game_id']]
         streamer_thread = threading.Thread(target=lambda: runCommand(cmd))
-        stop_streaming = False
         streamer_thread.start()
