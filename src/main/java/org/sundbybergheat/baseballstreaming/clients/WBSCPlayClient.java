@@ -37,6 +37,7 @@ public class WBSCPlayClient {
     }
     if (response.code() == 404) {
       // Game is not ready yet
+      response.close();
       return Optional.empty();
     }
     String responseString = response.toString();
