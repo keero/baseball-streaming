@@ -24,3 +24,8 @@ hs_err_pid*
 
 target/
 .vscode/
+
+# pyinstaller
+*.spec
+dist/
+build/

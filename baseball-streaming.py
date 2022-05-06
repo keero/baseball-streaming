@@ -11,6 +11,8 @@ HEAT_GAMES_2022 = {
     '2022-05-07 Regionserien Skellefteå @ Sundbyberg Game #2': {'game_id': '95337', 'series_id': '2022-regionserien-baseboll'},
     '2022-05-07 Elitserien Sundbyberg @ Karlskoga Game #1': {'game_id': '91839', 'series_id': '2022-elitserien-baseboll'},
     '2022-05-07 Elitserien Sundbyberg @ Karlskoga Game #2': {'game_id': '91840', 'series_id': '2022-elitserien-baseboll'},
+    '2022-05-08 Juniorserien Sundbyberg @ Karlskoga Game #1': {'game_id': '91737', 'series_id': '2022-juniorserien-baseboll'},
+    '2022-05-08 Juniorserien Sundbyberg @ Karlskoga Game #2': {'game_id': '91739', 'series_id': '2022-juniorserien-baseboll'},
     '2022-05-10 Elitserien Stockholm @ Sundbyberg': {'game_id': '91841', 'series_id': '2022-elitserien-baseboll'},
     '2022-05-15 Regionserien Enköping @ Sundbyberg Game #1': {'game_id': '95358', 'series_id': '2022-regionserien-baseboll'},
     '2022-05-15 Regionserien Enköping @ Sundbyberg Game #2': {'game_id': '95359', 'series_id': '2022-regionserien-baseboll'},
