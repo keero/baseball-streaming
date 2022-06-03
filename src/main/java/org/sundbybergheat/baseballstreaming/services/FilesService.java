@@ -106,8 +106,11 @@ public class FilesService {
   private void updateScoreBoard() throws IOException {
     String homeColorFile = String.format("team_resources/colors/%s.png", play.eventHome());
     String awayColorFile = String.format("team_resources/colors/%s.png", play.eventAway());
+    String homeFlagFile = String.format("team_resources/flags/%s.png", play.eventHomeId());
+    String awayFlagFile = String.format("team_resources/flags/%s.png", play.eventAwayId());
     String defaultHomeColorFile = "team_resources/colors/default_home.png";
     String defaultAwayColorFile = "team_resources/colors/default_away.png";
+    String defaultFlagFile = "team_resources/flags/default.png";
 
     filesClient.copyFile(
         filesClient.fileExists(homeColorFile) ? homeColorFile : defaultHomeColorFile,
@@ -115,6 +118,10 @@ public class FilesService {
     filesClient.copyFile(
         filesClient.fileExists(awayColorFile) ? awayColorFile : defaultAwayColorFile,
         "away_color.png");
+    filesClient.copyFile(
+        filesClient.fileExists(homeFlagFile) ? homeFlagFile : defaultFlagFile, "home_flag.png");
+    filesClient.copyFile(
+        filesClient.fileExists(awayFlagFile) ? awayFlagFile : defaultFlagFile, "away_flag.png");
     filesClient.writeStringToFile("home_team.txt", play.eventHome());
     filesClient.writeStringToFile("away_team.txt", play.eventAway());
     filesClient.writeStringToFile(
@@ -179,7 +186,7 @@ public class FilesService {
   private void updatePitcher(final BoxScore pitcher, final String subdir)
       throws IOException, StatsException {
     filesClient.writeStringToFile(
-        subdir + "/count.txt", pitcher.pitches().map(p -> p.toString()).orElse(""));
+        subdir + "/count.txt", pitcher.pitches().map(p -> String.format("P: %d", p)).orElse(""));
 
     filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName());
     filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.name());
