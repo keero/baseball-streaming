@@ -1,5 +1,6 @@
 package org.sundbybergheat.baseballstreaming.models.wbsc;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
@@ -15,6 +16,12 @@ import org.immutables.value.Value.Style;
 @JsonDeserialize(as = PlayImpl.class)
 @Style(jdkOnly = true, typeImmutable = "*Impl")
 public interface Play {
+
+  @JsonIgnore
+  @Default
+  default int playNumber() {
+    return 0;
+  }
 
   @JsonProperty("debug_lastplay")
   int debugLastPlay();

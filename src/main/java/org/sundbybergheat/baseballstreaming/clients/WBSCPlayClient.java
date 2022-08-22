@@ -6,11 +6,15 @@ import java.util.Optional;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.models.JsonMapper;
 import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
+import org.sundbybergheat.baseballstreaming.models.wbsc.PlayImpl;
 import org.sundbybergheat.baseballstreaming.models.wbsc.WBSCException;
 
 public class WBSCPlayClient {
+  private static final Logger LOG = LoggerFactory.getLogger(WBSCPlayClient.class);
 
   private static final String LATEST_URL = "%s/gamedata/%s/latest.json?_=%d";
   private static final String PLAY_URL = "%s/gamedata/%s/play%d.json?_=%d";
@@ -45,6 +49,22 @@ public class WBSCPlayClient {
     throw new WBSCException(String.format("Unexpected response from WBSC: %s", responseString));
   }
 
+  public Optional<Play> optimisticGetPlay(final String gameId, final int play)
+      throws IOException, WBSCException {
+    for (int i = 2; i > 0; i -= 1) {
+      try {
+        Optional<Play> maybePlay = getPlay(gameId, play + i);
+        if (maybePlay.isPresent()) {
+          LOG.info("Successfully obtained play {} ahead of {}.", play + i, play);
+          return maybePlay;
+        }
+      } catch (IOException | WBSCException e) {
+        // Do nothing
+      }
+    }
+    return getPlay(gameId, play);
+  }
+
   public Optional<Play> getPlay(final String gameId, final int play)
       throws IOException, WBSCException {
     String uri = String.format(PLAY_URL, baseUrl, gameId, play, Instant.now().toEpochMilli());
@@ -56,7 +76,8 @@ public class WBSCPlayClient {
     if (response.isSuccessful()) {
       String body = response.body().byteString().utf8();
       response.close();
-      return Optional.of(JsonMapper.fromJson(body, Play.class));
+      return Optional.of(
+          PlayImpl.builder().from(JsonMapper.fromJson(body, Play.class)).playNumber(play).build());
     }
 
     if (response.code() == 404) {

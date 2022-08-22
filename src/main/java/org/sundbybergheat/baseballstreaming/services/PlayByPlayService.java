@@ -21,6 +21,7 @@ public class PlayByPlayService implements Runnable {
   private final int delay;
 
   private int currentPlay = 0;
+  private int latestHandledPlay = 0;
   private int lastPlay = 0;
 
   public PlayByPlayService(
@@ -56,12 +57,14 @@ public class PlayByPlayService implements Runnable {
           }
           continue;
         }
+        Optional<Play> play = Optional.empty();
         if (runMode.equals(RunMode.live)) {
-          int latestPlay = maybeLatestPlay.get();
-          if (latestPlay == currentPlay) {
+          int nextPlay = Math.max(maybeLatestPlay.get(), currentPlay);
+          play = client.optimisticGetPlay(gameId, nextPlay);
+          if (currentPlay == play.map(p -> p.playNumber()).orElse(currentPlay)) {
             continue;
           }
-          currentPlay = latestPlay;
+          currentPlay = play.map(p -> p.playNumber()).orElse(currentPlay);
         } else {
           if (currentPlay == lastPlay) {
             lastPlay = maybeLatestPlay.get();
@@ -73,8 +76,8 @@ public class PlayByPlayService implements Runnable {
                 delay);
           }
           currentPlay += 1;
+          play = client.getPlay(gameId, currentPlay);
         }
-        Optional<Play> play = client.getPlay(gameId, currentPlay);
         if (play.isEmpty()) {
           LOG.warn("Play # {} could not be found.", currentPlay);
           continue;
