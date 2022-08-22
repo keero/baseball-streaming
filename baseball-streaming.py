@@ -50,6 +50,9 @@ HEAT_GAMES_2022 = {
     '2022-08-16 Elitserien Stockholm @ Sundbyberg': {'game_id': '91912', 'series_id': '2022-elitserien-baseboll'},
     '2022-08-19 Elitserien Stockholm @ Sundbyberg': {'game_id': '91907', 'series_id': '2022-elitserien-baseboll'},
     '2022-08-24 Regionserien Stockholm @ Sundbyberg': {'game_id': '95539', 'series_id': '2022-regionserien-baseboll'},
+    '2022-08-27 Elitserien Semifinal 1 Leksand @ Sundbyberg': {'game_id': '101175', 'series_id': '2022-elitserien-baseboll'},
+    '2022-08-27 Elitserien Semifinal 2 Leksand @ Sundbyberg': {'game_id': '101176', 'series_id': '2022-elitserien-baseboll'},
+    '2022-08-28 Elitserien Semifinal 3 Leksand @ Sundbyberg': {'game_id': '101177', 'series_id': '2022-elitserien-baseboll'},
 }
 
 def resource_path(relative_path):
