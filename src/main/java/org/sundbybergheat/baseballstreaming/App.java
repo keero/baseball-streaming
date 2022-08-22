@@ -46,6 +46,7 @@ public class App {
         "delay",
         true,
         "Delay (milliseconds) between fetching plays. Defaults to 500 for live and 3000 for replay.");
+    options.addOption("l", "limit-stats", false, "Only use stats from this series");
     options.addOption("h", "help", false, "Print this help section");
 
     HelpFormatter formatter = new HelpFormatter();
@@ -64,6 +65,8 @@ public class App {
       formatter.printHelp("baseball-streaming", options);
       return;
     }
+
+    final boolean onlyUseThisSeriesStats = cmd.hasOption("l");
 
     String target = null;
     String seriesId = null;
@@ -124,7 +127,8 @@ public class App {
     OkHttpClient okHttpClient = new OkHttpClient();
     FilesClient filesClient = new FilesClient(target);
     StatsClient statsClient = new StatsClient(okHttpClient, statsBaseUrl);
-    FilesService filesService = new FilesService(filesClient, statsClient, seriesId);
+    FilesService filesService =
+        new FilesService(filesClient, statsClient, seriesId, onlyUseThisSeriesStats);
     WBSCPlayClient wbscPlayClient = new WBSCPlayClient(okHttpClient, playsBaseUrl);
 
     filesService.initResources();

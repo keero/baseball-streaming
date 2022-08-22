@@ -44,7 +44,11 @@ public class StatsClient {
   }
 
   public AllStats getPlayerStats(
-      final String playerName, final String playerId, final String teamId, final String seriesId)
+      final String playerName,
+      final String playerId,
+      final String teamId,
+      final String seriesId,
+      final boolean onlyUseThisSeriesStats)
       throws StatsException, IOException {
     Map<String, SeriesStats> seriesStats = new HashMap<String, SeriesStats>();
     String thisUri = String.format(PLAYER_STATS_URL, baseUrl, seriesId, teamId, playerId);
@@ -63,7 +67,7 @@ public class StatsClient {
             .build());
 
     Optional<Element> table = getTableForHeading("Other events", thisDoc);
-    if (table.isPresent()) {
+    if (!onlyUseThisSeriesStats && table.isPresent()) {
       Elements rows = table.get().getElementsByTag("tbody").first().getElementsByTag("tr");
 
       for (Element element : rows) {

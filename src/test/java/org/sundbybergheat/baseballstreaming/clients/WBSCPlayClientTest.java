@@ -49,7 +49,7 @@ public class WBSCPlayClientTest {
 
     WBSCPlayClient wbscPlayClient = new WBSCPlayClient(mockClient, "https://game.wbsc.org/");
 
-    int latestPlay = wbscPlayClient.getLatestPlay("83353");
+    int latestPlay = wbscPlayClient.getLatestPlay("83353").orElseThrow();
 
     assertEquals(123, latestPlay);
   }

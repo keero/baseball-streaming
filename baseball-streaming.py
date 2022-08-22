@@ -27,6 +27,19 @@ HEAT_GAMES_2022 = {
     '2022-06-18 Elitserien Karlskoga @ Sundbyberg Game #2': {'game_id': '91884', 'series_id': '2022-elitserien-baseboll'},
     '2022-06-19 Juniorserien Karlskoga @ Sundbyberg Game #1': {'game_id': '91768', 'series_id': '2022-juniorserien-baseboll'},
     '2022-06-19 Juniorserien Karlskoga @ Sundbyberg Game #2': {'game_id': '91769', 'series_id': '2022-juniorserien-baseboll'},
+
+    '2022-07-04 U18 EM Switzerland @ Turkey Game #1': {'game_id': '98582', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-04 U18 EM Poland @ Sweden Game #2': {'game_id': '98583', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-05 U18 EM Turkey @ Great Britain Game #3': {'game_id': '98584', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-05 U18 EM Sweden @ Switzerland Game #4': {'game_id': '98585', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-06 U18 EM Poland @ Switzerland Game #5': {'game_id': '98586', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-06 U18 EM Great Britain @ Sweden Game #6': {'game_id': '98587', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-07 U18 EM Turkey @ Poland Game #7': {'game_id': '98588', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-07 U18 EM Switzerland @ Great Britain Game #8': {'game_id': '98589', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-08 U18 EM Great Britain @ Poland Game #9': {'game_id': '98590', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-08 U18 EM Sweden @ Turkey Game #10': {'game_id': '98591', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+    '2022-07-09 U18 EM Final': {'game_id': '98592', 'series_id': '2022-u-18-european-baseball-championship-qualifier'},
+
     '2022-07-23 Elitserien Sölvesborg @ Sundbyberg Game #1': {'game_id': '91889', 'series_id': '2022-elitserien-baseboll'},
     '2022-07-23 Elitserien Sölvesborg @ Sundbyberg Game #2': {'game_id': '91890', 'series_id': '2022-elitserien-baseboll'},
     '2022-07-24 Juniorserien Sölvesborg @ Sundbyberg Game #1': {'game_id': '91783', 'series_id': '2022-juniorserien-baseboll'},
@@ -75,6 +88,9 @@ layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justifica
           [sg.Text('',size=(30, 1)),
            sg.Radio('Live', key='live', group_id=1, default=True),
            sg.Radio('Replay', key='replay', group_id=1)],
+          [sg.Text('',size=(30, 1)),
+           sg.Radio('All Stats', key='allstats', group_id=2, default=True),
+           sg.Radio('Series Stats Only', key='seriesstats', group_id=2)],
           [sg.Submit(button_text='Start streaming', button_color='Green'),
            sg.Cancel(button_text='Stop', button_color='Red'),
            sg.Cancel(button_text='Exit'),
@@ -85,10 +101,14 @@ layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justifica
 window = sg.Window('Baseball Streaming', layout, resizable=True, size=(1024,768),
                    icon=resource_path('256x256.png'))
 
+
+
 streamer_thread = None
 while True:
     if window.was_closed():
         if streamer_thread:
+            if streamer_process:
+                streamer_process.terminate()
             stop_streaming = True
             streamer_thread.join()
         sys.exit(0)
@@ -144,5 +164,7 @@ while True:
                '-t', values['target_dir'],
                '-s', values['series_id'],
                '-g', values['game_id']]
+        if values['seriesstats']:
+            cmd.append('-l')
         streamer_thread = threading.Thread(target=lambda: runCommand(cmd))
         streamer_thread.start()

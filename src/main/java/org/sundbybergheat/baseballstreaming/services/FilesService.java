@@ -33,15 +33,20 @@ public class FilesService {
   private final FilesClient filesClient;
   private final StatsClient statsClient;
   private final String seriesId;
+  private final boolean onlyUseThisSeriesStats;
 
   private Map<String, AllStats> stats = new HashMap<String, AllStats>();
   private String inHoleBatter = null;
 
   public FilesService(
-      final FilesClient filesClient, final StatsClient statsClient, final String seriesId) {
+      final FilesClient filesClient,
+      final StatsClient statsClient,
+      final String seriesId,
+      final boolean onlyUseThisSeriesStats) {
     this.filesClient = filesClient;
     this.statsClient = statsClient;
     this.seriesId = seriesId;
+    this.onlyUseThisSeriesStats = onlyUseThisSeriesStats;
   }
 
   public void initResources() throws IOException {
@@ -195,7 +200,11 @@ public class FilesService {
       stats.put(
           pitcher.playerId(),
           statsClient.getPlayerStats(
-              pitcher.name(), pitcher.playerId(), pitcher.teamId(), seriesId));
+              pitcher.name(),
+              pitcher.playerId(),
+              pitcher.teamId(),
+              seriesId,
+              onlyUseThisSeriesStats));
     }
 
     AllStats allStats = stats.get(pitcher.playerId());
@@ -209,7 +218,15 @@ public class FilesService {
       filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
     }
 
-    SeriesStats selectedSeries = selectSeriesPitching(allStats, seriesId);
+    SeriesStats selectedSeries =
+        onlyUseThisSeriesStats
+            ? allStats.seriesStats().get(seriesId)
+            : selectSeriesPitching(allStats, seriesId);
+
+    filesClient.writeStringToFile(
+        subdir + "/pitching.txt", PitcherTools.pitcherNarrative(pitcher, selectedSeries));
+    filesClient.writeStringToFile(
+        subdir + "/pitching-title.txt", PitcherTools.pitcherNarrativeTitle(pitcher));
 
     if (selectedSeries == null || selectedSeries.pitching().isEmpty()) {
       LOG.warn("No stats for pitcher {} (id={})", pitcher.name(), pitcher.playerId());
@@ -332,7 +349,8 @@ public class FilesService {
     inHoleBatter = batter.playerId();
     stats.put(
         batter.playerId(),
-        statsClient.getPlayerStats(batter.name(), batter.playerId(), batter.teamId(), seriesId));
+        statsClient.getPlayerStats(
+            batter.name(), batter.playerId(), batter.teamId(), seriesId, onlyUseThisSeriesStats));
 
     updateBatter(batter, "inhole_batter");
   }
@@ -348,7 +366,8 @@ public class FilesService {
     if (!stats.containsKey(batter.playerId())) {
       stats.put(
           batter.playerId(),
-          statsClient.getPlayerStats(batter.name(), batter.playerId(), batter.teamId(), seriesId));
+          statsClient.getPlayerStats(
+              batter.name(), batter.playerId(), batter.teamId(), seriesId, onlyUseThisSeriesStats));
     }
 
     AllStats allStats = stats.get(batter.playerId());
@@ -362,9 +381,14 @@ public class FilesService {
       filesClient.copyFile("team_resources/flags/default.png", subdir + "/flag.png");
     }
 
-    SeriesStats selectedSeries = selectSeriesBatting(allStats, seriesId);
+    SeriesStats selectedSeries =
+        onlyUseThisSeriesStats
+            ? allStats.seriesStats().get(seriesId)
+            : selectSeriesBatting(allStats, seriesId);
     filesClient.writeStringToFile(
         subdir + "/batting.txt", BatterTools.batterNarrative(batter, stats, seriesId, play));
+    filesClient.writeStringToFile(
+        subdir + "/batting-title.txt", BatterTools.batterNarrativeTitle(batter, play));
 
     if (selectedSeries == null || selectedSeries.batting().isEmpty()) {
       LOG.warn("No stats for batter {} (id={})", batter.name(), batter.playerId());
@@ -385,6 +409,8 @@ public class FilesService {
         subdir + "/rbi.txt", Integer.toString(batterStats.runsBattedIn()));
     filesClient.writeStringToFile(
         subdir + "/batting.txt", BatterTools.batterNarrative(batter, selectedSeries, play));
+    filesClient.writeStringToFile(
+        subdir + "/batting-title.txt", BatterTools.batterNarrativeTitle(batter, play));
 
     String statsForSeries = "";
     if (selectedSeries.otherSeries()) {
