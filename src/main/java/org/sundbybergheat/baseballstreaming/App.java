@@ -30,7 +30,7 @@ public class App {
         "S",
         "stats-base-url",
         true,
-        "Base url where to fetch stats from. Defaults to 'https://www.wbsceurope.org'");
+        "Base url where to fetch stats from. Defaults to 'https://stats.baseboll-softboll.se'");
     options.addOption(
         "P",
         "plays-base-url",
@@ -89,14 +89,14 @@ public class App {
       target = properties.getProperty("target");
       seriesId = properties.getProperty("series");
       gameId = properties.getProperty("game");
-      statsBaseUrl = properties.getProperty("stats-base-url", "https://www.wbsceurope.org");
+      statsBaseUrl = properties.getProperty("stats-base-url", "https://stats.baseboll-softboll.se");
       playsBaseUrl = properties.getProperty("plays-base-url", "https://game.wbsc.org");
       runMode = properties.getProperty("run-mode", RunMode.live.toString());
     } else {
       target = cmd.getOptionValue("t");
       seriesId = cmd.getOptionValue("s");
       gameId = cmd.getOptionValue("g");
-      statsBaseUrl = cmd.getOptionValue("S", "https://www.wbsceurope.org");
+      statsBaseUrl = cmd.getOptionValue("S", "https://stats.baseboll-softboll.se");
       playsBaseUrl = cmd.getOptionValue("P", "https://game.wbsc.org");
       runMode = cmd.getOptionValue("m", RunMode.live.toString());
       delay = cmd.getOptionValue("d", runMode.equals(RunMode.live.toString()) ? "500" : "3000");
