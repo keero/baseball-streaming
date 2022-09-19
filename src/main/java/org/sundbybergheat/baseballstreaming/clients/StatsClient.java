@@ -35,6 +35,9 @@ public class StatsClient {
 
   private static final String PLAYER_STATS_URL = "%s/en/events/%s/teams/%s/players/%s";
 
+  private static final String BATTING_STATS_HEADER = "BATTING STATS";
+  private static final String PITCHING_STATS_HEADER = "PITCHING STATS";
+
   private final OkHttpClient client;
   private final String baseUrl;
 
@@ -60,7 +63,7 @@ public class StatsClient {
     Document thisDoc = getHtmlDoc(thisUri);
     seriesStats.put(
         seriesId,
-        parsePlayerSeriesStats(thisDoc, playerId, teamId)
+        parsePlayerSeriesStats(thisDoc, playerId, teamId, thisUri)
             .id(seriesId)
             .seriesName(seriesId)
             .year(thisYear)
@@ -130,7 +133,7 @@ public class StatsClient {
 
           seriesStats.put(
               otherSeriesId.id(),
-              parsePlayerSeriesStats(doc, otherPlayerId, otherTeamId)
+              parsePlayerSeriesStats(doc, otherPlayerId, otherTeamId, patchedUri)
                   .id(otherSeriesId.id())
                   .seriesName(otherName)
                   .year(otherYear)
@@ -167,19 +170,31 @@ public class StatsClient {
         .filter(
             e ->
                 !e.getElementsByTag("h3").isEmpty()
-                    && heading.equals(e.getElementsByTag("h3").get(0).text()))
+                    && heading.equalsIgnoreCase(e.getElementsByTag("h3").get(0).text()))
         .map(e -> e.getElementsByTag("table"))
         .findFirst()
         .map(t -> t.first());
   }
 
   private SeriesStatsImpl.Builder parsePlayerSeriesStats(
-      final Document doc, final String playerId, final String teamId) {
+      final Document doc, final String playerId, final String teamId, final String sourceUri) {
+    Optional<BatterStats> batterStats = parsePlayerBatterStats(doc, playerId, teamId);
+    Optional<PitcherStats> pitcherStats = parsePlayerPitcherStats(doc, playerId, teamId);
+    if (batterStats.isEmpty() && pitcherStats.isEmpty()) {
+      LOG.warn(
+          "Found neither batting nor pitching stats for player {} @ {}. "
+              + "Either it is the first game for the player in the series or something has changed on the stats page. "
+              + "Are we searching for the correct sections ('{}' for batting stats and '{}' for pitching stats)?",
+          playerId,
+          sourceUri,
+          BATTING_STATS_HEADER,
+          PITCHING_STATS_HEADER);
+    }
     return SeriesStatsImpl.builder()
         .teamFlagUrl(parseTeamFlagUrl(doc))
         .playerImageUrl(parsePlayerImageUrl(doc))
-        .batting(parsePlayerBatterStats(doc, playerId, teamId))
-        .pitching(parsePlayerPitcherStats(doc, playerId, teamId));
+        .batting(batterStats)
+        .pitching(pitcherStats);
   }
 
   private Optional<String> parseTeamFlagUrl(final Document doc) {
@@ -198,7 +213,7 @@ public class StatsClient {
   private Optional<BatterStats> parsePlayerBatterStats(
       final Document doc, final String playerId, final String teamId) {
 
-    Optional<Element> table = getTableForHeading("Batting stats", doc);
+    Optional<Element> table = getTableForHeading(BATTING_STATS_HEADER, doc);
 
     if (table.isEmpty()) {
       return Optional.empty();
@@ -249,7 +264,7 @@ public class StatsClient {
   private Optional<PitcherStats> parsePlayerPitcherStats(
       final Document doc, final String playerId, final String teamId) {
 
-    Optional<Element> table = getTableForHeading("Pitching stats", doc);
+    Optional<Element> table = getTableForHeading(PITCHING_STATS_HEADER, doc);
 
     if (table.isEmpty()) {
       return Optional.empty();
