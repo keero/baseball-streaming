@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
@@ -103,12 +104,13 @@ public class BatterTools {
     return summaryOfSeries(stats);
   }
 
-  public static String batterNarrativeTitle(final BoxScore batter, final Play play) {
+  public static String batterNarrativeTitle(
+      final BoxScore batter, final Play play, final String seriesName) {
     List<PlayData> plateApperances = plateAppearances(batter, play);
     if (plateApperances.size() > 0) {
       return "In This Game";
     }
-    return "This Season";
+    return seriesName;
   }
 
   private static String summaryOfGame(final BoxScore batter, final List<PlayData> plateApperances) {
@@ -266,7 +268,54 @@ public class BatterTools {
   private static String summaryOfSeries(
       final Map<String, AllStats> stats, final String playerId, final String seriesId) {
 
-    return summaryOfSeries(stats.get(playerId).seriesStats().get(seriesId));
+    final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
+
+    if (seriesContainsEnoughStats(thisSeriesStats)) {
+      return String.format("This season: %s", summaryOfSeries(thisSeriesStats));
+    }
+
+    final Optional<SeriesStats> lastSeason =
+        stats.get(playerId).seriesStats().values().stream()
+            .filter(
+                ss ->
+                    !ss.id().equals(seriesId)
+                        && !ss.otherSeries()
+                        && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
+            .findFirst();
+
+    if (lastSeason.map(ls -> seriesContainsEnoughStats(ls)).orElse(false)) {
+      return String.format("Last season: %s", summaryOfSeries(lastSeason.get()));
+    }
+
+    final List<SeriesStats> otherSeries =
+        stats.get(playerId).seriesStats().values().stream()
+            .filter(ss -> !ss.id().equals(seriesId) && ss.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .collect(Collectors.toList());
+
+    for (SeriesStats other : otherSeries) {
+      if (seriesContainsEnoughStats(other)) {
+        return String.format("%s:\n %s", other.seriesName(), summaryOfSeries(other));
+      }
+    }
+
+    return "";
+  }
+
+  private static boolean seriesContainsEnoughStats(final SeriesStats seriesStats) {
+    if (seriesStats == null || seriesStats.batting().isEmpty()) {
+      return false;
+    }
+    BatterStats stats = seriesStats.batting().get();
+
+    final Integer atBats = stats.atBats();
+    final Integer walksAndHitByPitch = stats.walks() + stats.hitByPitch();
+    final Integer plateAppearances =
+        atBats + walksAndHitByPitch + stats.sacrificeFlies() + stats.sacrificeHits();
+    if (plateAppearances == 0 && ".000".equals(stats.onBasePercentage())) {
+      return false;
+    }
+    return true;
   }
 
   private static String summaryOfSeries(final SeriesStats seriesStats) {
@@ -315,6 +364,6 @@ public class BatterTools {
               "HIT BY PITCH %d TIME%s", stats.hitByPitch(), stats.hitByPitch() > 1 ? "S" : ""));
     }
 
-    return "This Season: " + String.join(", ", summary);
+    return String.join(", ", summary);
   }
 }

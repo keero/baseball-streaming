@@ -117,7 +117,12 @@ public class StatsClient {
                   && thisSeriesId.prefix().equals(otherSeriesId.prefix())
                   && thisSeriesId.postfix().equals(otherSeriesId.postfix());
 
-          LOG.info("Fetching stats for {} (id={}) in {}", playerName, otherPlayerId, otherName);
+          LOG.info(
+              "Fetching stats for {} (id={}) in {} (same = {})",
+              playerName,
+              otherPlayerId,
+              otherSeriesId.id(),
+              sameSeries);
 
           String patchedUri = uri;
 

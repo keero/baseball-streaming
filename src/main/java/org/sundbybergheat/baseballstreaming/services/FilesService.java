@@ -224,9 +224,10 @@ public class FilesService {
             : selectSeriesPitching(allStats, seriesId);
 
     filesClient.writeStringToFile(
-        subdir + "/pitching.txt", PitcherTools.pitcherNarrative(pitcher, selectedSeries));
+        subdir + "/pitching.txt", PitcherTools.pitcherNarrative(pitcher, stats, seriesId));
     filesClient.writeStringToFile(
-        subdir + "/pitching-title.txt", PitcherTools.pitcherNarrativeTitle(pitcher));
+        subdir + "/pitching-title.txt",
+        PitcherTools.pitcherNarrativeTitle(pitcher, stats, seriesId));
 
     if (selectedSeries == null || selectedSeries.pitching().isEmpty()) {
       LOG.warn("No stats for pitcher {} (id={})", pitcher.name(), pitcher.playerId());
@@ -385,10 +386,11 @@ public class FilesService {
         onlyUseThisSeriesStats
             ? allStats.seriesStats().get(seriesId)
             : selectSeriesBatting(allStats, seriesId);
-    filesClient.writeStringToFile(
-        subdir + "/batting.txt", BatterTools.batterNarrative(batter, stats, seriesId, play));
-    filesClient.writeStringToFile(
-        subdir + "/batting-title.txt", BatterTools.batterNarrativeTitle(batter, play));
+    final String batterNarrative =
+        onlyUseThisSeriesStats
+            ? BatterTools.batterNarrative(batter, selectedSeries, play)
+            : BatterTools.batterNarrative(batter, stats, seriesId, play);
+    filesClient.writeStringToFile(subdir + "/batting.txt", batterNarrative);
 
     if (selectedSeries == null || selectedSeries.batting().isEmpty()) {
       LOG.warn("No stats for batter {} (id={})", batter.name(), batter.playerId());
@@ -397,6 +399,7 @@ public class FilesService {
       filesClient.writeStringToFile(subdir + "/hr.txt", "");
       filesClient.writeStringToFile(subdir + "/rbi.txt", "");
       filesClient.writeStringToFile(subdir + "/stats_for_series.txt", "");
+      filesClient.writeStringToFile(subdir + "/batting-title.txt", "");
       return;
     }
 
@@ -407,10 +410,10 @@ public class FilesService {
     filesClient.writeStringToFile(subdir + "/hr.txt", Integer.toString(batterStats.homeruns()));
     filesClient.writeStringToFile(
         subdir + "/rbi.txt", Integer.toString(batterStats.runsBattedIn()));
+
     filesClient.writeStringToFile(
-        subdir + "/batting.txt", BatterTools.batterNarrative(batter, selectedSeries, play));
-    filesClient.writeStringToFile(
-        subdir + "/batting-title.txt", BatterTools.batterNarrativeTitle(batter, play));
+        subdir + "/batting-title.txt",
+        BatterTools.batterNarrativeTitle(batter, play, selectedSeries.seriesName()));
 
     String statsForSeries = "";
     if (selectedSeries.otherSeries()) {
@@ -471,7 +474,7 @@ public class FilesService {
     // else try to find previous season stats
     Optional<SeriesStats> lastSeason =
         seriesStats.values().stream()
-            .filter(s -> !s.otherSeries())
+            .filter(s -> !s.id().equals(seriesId) && !s.otherSeries())
             .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
             .findFirst();
     if (lastSeason
