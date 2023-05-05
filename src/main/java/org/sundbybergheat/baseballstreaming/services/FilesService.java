@@ -14,9 +14,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.clients.FilesClient;
 import org.sundbybergheat.baseballstreaming.clients.StatsClient;
+import org.sundbybergheat.baseballstreaming.models.JsonMapper;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
+import org.sundbybergheat.baseballstreaming.models.stats.Player;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
 import org.sundbybergheat.baseballstreaming.models.stats.StatsException;
 import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScore;
@@ -92,20 +94,25 @@ public class FilesService {
 
   protected void updatePlay(final Play play) throws StatsException {
     this.play = play;
-    updateState();
-  }
-
-  private void updateState() throws StatsException {
     try {
-      updateScoreBoard();
-      updateLineups();
-      updateCurrentPitcher();
-      updateCurrentBatter();
-      updateOnDeckBatter();
-      updateInHoleBatter();
+      List<Player> rosterHome = statsClient.getRoster(seriesId, play.eventHomeId());
+      List<Player> rosterAway = statsClient.getRoster(seriesId, play.eventAwayId());
+      filesClient.writeStringToFile("roster_home.json", JsonMapper.toJson(rosterHome));
+      filesClient.writeStringToFile("roster_away.json", JsonMapper.toJson(rosterAway));
+      filesClient.writeStringToFile("current_play.json", JsonMapper.toJson(play));
+      updateState();
     } catch (IOException e) {
       LOG.error("Something went wrong", e);
     }
+  }
+
+  private void updateState() throws IOException, StatsException {
+    updateScoreBoard();
+    updateLineups();
+    updateCurrentPitcher();
+    updateCurrentBatter();
+    updateOnDeckBatter();
+    updateInHoleBatter();
   }
 
   private void updateScoreBoard() throws IOException {

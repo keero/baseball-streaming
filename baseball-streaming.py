@@ -1,8 +1,15 @@
+import json
+import re
+from time import sleep
+from tkinter import font
+from turtle import color
 import PySimpleGUI as sg
 import subprocess
 import threading
 import sys
 import os
+from shutil import copyfile
+
 
 HEAT_GAMES_2022 = {
     '2022-04-30 Elitserien Sundsvall @ Sundbyberg Game #1': {'game_id': '91830', 'series_id': '2022-elitserien-baseboll'},
@@ -74,10 +81,122 @@ def runCommand(cmd):
     for line in streamer_process.stdout:
         print(line.decode(errors='ignore').rstrip())
 
+def getRoster(target_dir, side):
+    with open('%s/roster_%s.json' % (target_dir, side), 'rb') as f:
+        roster_json = json.load(f)
+        f.close()
+        roster = {}
+        for player in roster_json:
+            roster[player['name']] = player['id']
+        return roster
+
+def updateRosterLists(target_dir):
+    for side in ['home', 'away']:
+        roster = getRoster(target_dir, side)
+        pitcher_key = 'override-%s-pitcher' % side
+        batter_key = 'override-%s-batter' % side
+        window[pitcher_key].update(value=window[pitcher_key].get(), values=list(roster))
+        window[batter_key].update(value=window[batter_key].get(), values=list(roster))
+
+
+def updatePlay(target_dir):
+    global window
+    with open('%s/current_play.json' % target_dir, 'rb') as f:
+        current_play = json.load(f)
+        f.close()
+        window['play-number'].update(str(current_play['playNumber']))
+        window['count'].update('%d - %d' % (current_play['situation']['balls'], current_play['situation']['strikes']))
+        window['outs'].update(str(current_play['situation']['outs']))
+        bases = '%c%c%c' % ('x' if current_play['situation']['runner1'] > 0 else 'o', 'x' if current_play['situation']['runner2'] > 0 else 'o', 'x' if current_play['situation']['runner3'] > 0 else 'o')
+        window['bases'].update(bases)
+        window['score'].update('%d - %d' % (current_play['linescore']['awaytotals']['R'], current_play['linescore']['hometotals']['R']))
+        window['inning'].update(current_play['situation']['currentinning'])
+        window['pitcher'].update(current_play['situation']['pitcher'])
+        window['batter'].update(current_play['situation']['batter'])
+
+def overrideScore(values):
+    global window
+    home_roster = getRoster(values['target_dir'], 'home')
+    away_roster = getRoster(values['target_dir'], 'away')
+    data = {
+        'play': '' if values['or-permanent'] else window['play-number'].DisplayText,
+        'count': {
+            'balls': values['or-ball-count'],
+            'strikes': values['or-strike-count']
+        },
+        'outs': values['or-outs'],
+        'bases': values['or-bases'],
+        'score': {
+            'home': values['or-score-home'],
+            'away': values['or-score-away']
+        },
+        'inning': values['or-inning'],
+        'awaypitcher': '' if not values['override-away-pitcher'] else str(away_roster[values['override-away-pitcher']]),
+        'homepitcher': '' if not values['override-home-pitcher'] else str(home_roster[values['override-home-pitcher']]),
+        'awaybatter': '' if not values['override-away-batter'] else str(away_roster[values['override-away-batter']]),
+        'homebatter': '' if not values['override-home-batter'] else str(home_roster[values['override-home-batter']]),
+    }
+    with open('%s/override.json' % values['target_dir'], 'w') as f:
+        json.dump(data, f)
+
+def deleteOverride(target_dir):
+    path = '%s/override.json' % target_dir
+    if os.path.exists(path):
+        os.remove(path)
+
+def getCurrentOverride(target_dir):
+    path = '%s/override.json' % target_dir
+    if os.path.exists(path):
+        with open('%s/override.json' % target_dir, 'rb') as f:
+            override = json.load(f)
+            f.close()
+            return override
+    return None
+
+def updateOverrideStatusText(target_dir):
+    global window
+    new_status_text = 'Inactive'
+    override = getCurrentOverride(target_dir)
+    if override:
+        current_play = int(window['play-number'].DisplayText)
+        override_play = -1 if not override['play'] else int(override['play'])
+        if override_play == -1:
+            new_status_text = 'Active'
+        elif current_play > override_play:
+            new_status_text = 'Expired (was valid until play # %d)' % override_play
+        else:
+            new_status_text = 'Active (expires after play # %d)' % override_play
+    window['override-status-text'].update(new_status_text)
+
+def findPlayer(roster, id):
+    for player in roster:
+        if str(roster[player]) == id:
+            return player
+    return ''
+
+def fillCurrentOverride(target_dir):
+    override = getCurrentOverride(target_dir)
+    if not override:
+        return
+    home_roster = getRoster(target_dir, 'home')
+    away_roster = getRoster(target_dir, 'away')
+    print(override)
+    print(away_roster)
+    window['or-ball-count'].update(override['count']['balls'])
+    window['or-strike-count'].update(override['count']['strikes'])
+    window['or-outs'].update(override['outs'])
+    window['or-bases'].update(override['bases'])
+    window['or-score-home'].update(override['score']['home'])
+    window['or-score-away'].update(override['score']['away'])
+    window['or-inning'].update(override['inning'])
+    window['override-away-pitcher'].update(value=findPlayer(away_roster, override['awaypitcher']))
+    window['override-away-batter'].update(value=findPlayer(away_roster, override['awaybatter']))
+    window['override-home-pitcher'].update(value=findPlayer(home_roster, override['homepitcher']))
+    window['override-home-batter'].update(value=findPlayer(home_roster, override['homebatter']))
 
 sg.theme('SystemDefault')
 
-layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justification='right'),
+left = [[sg.Text('Output directory for OBS resources', size=(30, 1), justification='right'),
            sg.Input(default_text='/home/martinkero/Documents/personal/obs/resources', size=80, key='target_dir'),
            sg.FolderBrowse()],
           [sg.Text('Select game', size=(30, 1), justification='right'),
@@ -99,23 +218,66 @@ layout = [[sg.Text('Output directory for OBS resources', size=(30, 1), justifica
            sg.Cancel(button_text='Exit'),
            sg.Cancel(button_text='Clear')],
           [sg.Text('Log:')],
-          [sg.Output(size=(400, 30), expand_x=True, expand_y=True, key='output_area', echo_stdout_stderr=True)]]
+          [sg.Output(size=(130, 300), expand_x=True, expand_y=True, key='output_area', echo_stdout_stderr=True)]]
 
-window = sg.Window('Baseball Streaming', layout, resizable=True, size=(1024,768),
+official = sg.Frame('Official', [
+           [sg.Text('@ play #:', size=(8,1), justification='right'), sg.Text('', key='play-number', size=(25,1))],
+           [sg.Text('Count:', size=(8,1), justification='right'), sg.Text('', key='count', size=(25,1))],
+           [sg.Text('Outs:', size=(8,1), justification='right'), sg.Text('', key='outs', size=(25,1))],
+           [sg.Text('Bases:', size=(8,1), justification='right'), sg.Text('', key='bases', size=(25,1))],
+           [sg.Text('Score:', size=(8,1), justification='right'), sg.Text('', key='score', size=(25,1))],
+           [sg.Text('Inning:', size=(8,1), justification='right'), sg.Text('', key='inning', size=(25,1))],
+           [sg.Text('Pitcher:', size=(8,1), justification='right'), sg.Text('', key='pitcher', size=(25,1))],
+           [sg.Text('Batter:', size=(8,1), justification='right'), sg.Text('', key='batter', size=(25,1))],
+           ], font="arial 12", border_width=1, key='official-score-frame')
+
+manual_ovveride = sg.Frame('Manual Override', [
+            [sg.Text('Status: '), sg.Text('', key='override-status-text')],
+            [sg.Text('TTL:', size=(12,1), justification='right'), sg.Radio('Next play', key='or-next-play', default=True, group_id=3), sg.Radio('Permanent', key='or-permanent', group_id=3)],
+            [sg.Text('Count:', size=(12,1), justification='right'), sg.Input(size=2, key='or-ball-count', justification='center'), sg.Text('-'), sg.Input(size=2, key='or-strike-count', justification='center')],
+            [sg.Text('Outs:', size=(12,1), justification='right'), sg.Input(size=2, key='or-outs', justification='center')],
+            [sg.Text('Bases:', size=(12,1), justification='right'), sg.Input(size=1, key='or-bases', justification='center'),
+                sg.Button(size=(1,1), button_color='black on #eeeeee', button_text='1', font='arial 10 bold',),
+                sg.Button(size=(1,1), button_color='black on #eeeeee', button_text='2', font='arial 10 bold',),
+                sg.Button(size=(1,1), button_color='black on #eeeeee', button_text='3', font='arial 10 bold',),
+                sg.Checkbox('Include',),
+                ],
+            [sg.Text('Score:', size=(12,1), justification='right'), sg.Input(size=2, key='or-score-away', justification='center'), sg.Text('-'), sg.Input(size=2, key='or-score-home', justification='center')],
+            [sg.Text('Inning:', size=(12,1), justification='right'), sg.Input(size=5, key='or-inning', tooltip='ex: bot 3', justification='center')],
+            [sg.Text('Home Pitcher:', size=(12,1), justification='right'), sg.Combo([''], key='override-home-pitcher', size=30)],
+            [sg.Text('Away Pitcher:', size=(12,1), justification='right'), sg.Combo([''], key='override-away-pitcher', size=30)],
+            [sg.Text('Home Batter:', size=(12,1), justification='right'), sg.Combo([''], key='override-home-batter', size=30)],
+            [sg.Text('Away Batter:', size=(12,1), justification='right'), sg.Combo([''], key='override-away-batter', size=30)],
+            [
+             sg.Button(button_text='Clear', button_color='Gray', key='clear-override'),
+             sg.Button(button_text='Get Current Override', button_color='Gray', key='get-override'),],[
+             sg.Button(button_text='Start Override', button_color='Red', key='override-score'),
+             sg.Button(button_text='Stop Override', button_color='Green', key='stop-override-score'),
+            ],
+           ], font='arial 12', border_width=1, key='override-score-frame')
+
+right = [[sg.Text('Score',font='Arial 18 bold')],
+    [sg.Column([[official]], vertical_alignment='top'), sg.Column([[manual_ovveride]], vertical_alignment='top')]]
+
+
+layout3 = [[sg.Column(left, vertical_alignment='top'), sg.VerticalSeparator() ,sg.Column(right, vertical_alignment='top')]]
+
+window = sg.Window('Baseball Streaming', layout3, resizable=True, size=(1920,1080),
                    icon=resource_path('256x256.png'))
 
-
-
 streamer_thread = None
+stop_play_updater = True
 while True:
     if window.was_closed():
         if streamer_thread:
             if streamer_process:
                 streamer_process.terminate()
-            stop_streaming = True
             streamer_thread.join()
         sys.exit(0)
-    event, values = window.read()
+    event, values = window.read(timeout=500)
+    updatePlay(values['target_dir'])
+    updateRosterLists(values['target_dir'])
+    updateOverrideStatusText(values['target_dir'])
     if event == 'game_selector':
         window['series_id'].update(HEAT_GAMES_2022[values['game_selector']]['series_id'])
         window['game_id'].update(HEAT_GAMES_2022[values['game_selector']]['game_id'])
@@ -171,3 +333,25 @@ while True:
             cmd.append('-l')
         streamer_thread = threading.Thread(target=lambda: runCommand(cmd))
         streamer_thread.start()
+    if event == 'override-score':
+        overrideScore(values)
+    if event == 'clear-override':
+        window['or-ball-count'].update('')
+        window['or-strike-count'].update('')
+        window['or-outs'].update('')
+        window['or-bases'].update('')
+        window['or-score-away'].update('')
+        window['or-score-home'].update('')
+        window['or-inning'].update('')
+        window['override-home-pitcher'].update(value='')
+        window['override-home-batter'].update(value='')
+        window['override-away-pitcher'].update(value='')
+        window['override-away-batter'].update(value='')
+    if event == 'stop-override-score':
+        deleteOverride(values['target_dir'])
+    if event == 'get-override':
+        fillCurrentOverride(values['target_dir'])
+
+    #     manual_ovveride.Font = 'arial 12'
+    #     official.Font = 'arial 12 bold'
+    #     window.refresh()

@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
@@ -24,6 +25,8 @@ import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStatsImpl;
+import org.sundbybergheat.baseballstreaming.models.stats.Player;
+import org.sundbybergheat.baseballstreaming.models.stats.PlayerImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesId;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesIdImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
@@ -34,9 +37,11 @@ public class StatsClient {
   private static final Logger LOG = LoggerFactory.getLogger(StatsClient.class);
 
   private static final String PLAYER_STATS_URL = "%s/en/events/%s/teams/%s/players/%s";
+  private static final String TEAM_ROSTER_URL = "%s/en/events/%s/teams/%s";
 
   private static final String BATTING_STATS_HEADER = "BATTING STATS";
   private static final String PITCHING_STATS_HEADER = "PITCHING STATS";
+  private static final String ROSTER_HEADER = "ROSTER";
 
   private final OkHttpClient client;
   private final String baseUrl;
@@ -148,6 +153,32 @@ public class StatsClient {
         .careerBatting(CareerStatsTools.getCareerBattingStats(seriesStats.values()))
         .careerPitching(CareerStatsTools.getCareerPitchingStats(seriesStats.values()))
         .build();
+  }
+
+  public List<Player> getRoster(final String seriesId, final String teamId)
+      throws StatsException, IOException {
+    String uri = String.format(TEAM_ROSTER_URL, baseUrl, seriesId, teamId);
+
+    LOG.info("Fetching roster for {} in {}", teamId, seriesId);
+    Document doc = getHtmlDoc(uri);
+    Element table =
+        getTableForHeading(ROSTER_HEADER, doc)
+            .orElseThrow(() -> new StatsException(String.format("Cannot find roster @ %s", uri)));
+
+    List<Player> roster =
+        table.getElementsByTag("tbody").first().getElementsByTag("tr").stream()
+            .map(
+                e -> {
+                  Elements playerInfo = e.getElementsByTag("td");
+                  int number = Integer.parseInt(playerInfo.get(0).text());
+                  Element playerNameLink = playerInfo.get(1).getElementsByTag("a").first();
+                  String[] split = playerNameLink.attr("href").split("/");
+                  int playerId = Integer.parseInt(split[split.length - 1]);
+                  String playerName = playerNameLink.text();
+                  return PlayerImpl.builder().id(playerId).number(number).name(playerName).build();
+                })
+            .collect(Collectors.toList());
+    return roster;
   }
 
   private SeriesId parseSeriesId(final String seriesId) {
