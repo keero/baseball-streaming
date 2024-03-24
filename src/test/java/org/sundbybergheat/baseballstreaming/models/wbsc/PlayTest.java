@@ -10,8 +10,6 @@ public class PlayTest {
   @Test
   void shouldParsePlayJson() throws IOException {
     String playJson = IOUtils.resourceToString("/wbsc/playXX.json", StandardCharsets.UTF_8);
-
-    Play play = JsonMapper.fromJson(playJson, Play.class);
-    System.out.println(JsonMapper.toJson(play));
+    JsonMapper.fromJson(playJson, Play.class);
   }
 }
