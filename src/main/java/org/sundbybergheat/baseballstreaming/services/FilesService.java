@@ -3,6 +3,7 @@ package org.sundbybergheat.baseballstreaming.services;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,8 @@ import org.sundbybergheat.baseballstreaming.clients.StatsClient;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
+import org.sundbybergheat.baseballstreaming.models.stats.SeriesId;
+import org.sundbybergheat.baseballstreaming.models.stats.SeriesIdImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
 import org.sundbybergheat.baseballstreaming.models.stats.StatsException;
 import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScore;
@@ -203,7 +206,7 @@ public class FilesService {
               pitcher.name(),
               pitcher.playerId(),
               pitcher.teamId(),
-              seriesId,
+              parseSeriesId(seriesId),
               onlyUseThisSeriesStats));
     }
 
@@ -351,7 +354,11 @@ public class FilesService {
     stats.put(
         batter.playerId(),
         statsClient.getPlayerStats(
-            batter.name(), batter.playerId(), batter.teamId(), seriesId, onlyUseThisSeriesStats));
+            batter.name(),
+            batter.playerId(),
+            batter.teamId(),
+            parseSeriesId(seriesId),
+            onlyUseThisSeriesStats));
 
     updateBatter(batter, "inhole_batter");
   }
@@ -368,7 +375,11 @@ public class FilesService {
       stats.put(
           batter.playerId(),
           statsClient.getPlayerStats(
-              batter.name(), batter.playerId(), batter.teamId(), seriesId, onlyUseThisSeriesStats));
+              batter.name(),
+              batter.playerId(),
+              batter.teamId(),
+              parseSeriesId(seriesId),
+              onlyUseThisSeriesStats));
     }
 
     AllStats allStats = stats.get(batter.playerId());
@@ -456,26 +467,31 @@ public class FilesService {
 
   private SeriesStats selectSeriesBatting(final AllStats stats, final String seriesId) {
 
-    Matcher matcher = Pattern.compile("^.*(2[0-9]{3}).*$").matcher(seriesId);
-    Map<String, SeriesStats> seriesStats = stats.seriesStats();
-    Optional<Integer> thisYear =
-        matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
+    final SeriesId seriesIdParsed = parseSeriesId(seriesId);
+
+    Collection<SeriesStats> seriesStats = stats.seriesStats().values();
 
     // Select this season if stats are available
-    if (seriesStats.containsKey(seriesId)
-        && seriesStats
-            .get(seriesId)
+    Optional<SeriesStats> thisSeason =
+        seriesStats.stream()
+            .filter(s -> s.year().orElse(0) == seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .findFirst();
+    if (thisSeason.isPresent()
+        && thisSeason
+            .get()
             .batting()
             .map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS)
             .orElse(false)) {
-      return seriesStats.get(seriesId);
+      return thisSeason.get();
     }
 
-    // else try to find previous season stats
+    // else try to find last season stats
     Optional<SeriesStats> lastSeason =
-        seriesStats.values().stream()
-            .filter(s -> !s.id().equals(seriesId) && !s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+        seriesStats.stream()
+            .filter(
+                s ->
+                    s.year().orElse(0) == (seriesIdParsed.year().orElse(-1) - 1)
+                        && !s.otherSeries())
             .findFirst();
     if (lastSeason
         .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
@@ -485,10 +501,10 @@ public class FilesService {
 
     // else try to find other series stats this year
     Optional<SeriesStats> otherSeries =
-        seriesStats.values().stream()
+        seriesStats.stream()
             .filter(
                 s ->
-                    s.year().filter(y -> y.equals(thisYear.orElse(0))).isPresent()
+                    s.year().filter(y -> y.equals(seriesIdParsed.year().orElse(0))).isPresent()
                         && s.otherSeries())
             .findFirst();
     if (otherSeries
@@ -497,9 +513,21 @@ public class FilesService {
       return otherSeries.get();
     }
 
+    // else try to find previous season stats
+    Optional<SeriesStats> prevSeason =
+        seriesStats.stream()
+            .filter(s -> s.year().orElse(0) < seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .findFirst();
+    if (prevSeason
+        .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
+        .orElse(false)) {
+      return prevSeason.get();
+    }
+
     // else try to find other series previous season stats
     Optional<SeriesStats> otherSeriesLastSeason =
-        seriesStats.values().stream()
+        seriesStats.stream()
             .filter(s -> s.otherSeries())
             .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
             .findFirst();
@@ -510,7 +538,7 @@ public class FilesService {
     }
 
     // else pick any stats
-    return seriesStats.values().stream()
+    return seriesStats.stream()
         .filter(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
         .findFirst()
         .orElse(null);
@@ -518,26 +546,36 @@ public class FilesService {
 
   private SeriesStats selectSeriesPitching(final AllStats stats, final String seriesId) {
 
-    Matcher matcher = Pattern.compile("^.*(2[0-9]{3}).*$").matcher(seriesId);
-    Map<String, SeriesStats> seriesStats = stats.seriesStats();
-    Optional<Integer> thisYear =
-        matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
+    final SeriesId seriesIdParsed = parseSeriesId(seriesId);
+
+    Collection<SeriesStats> seriesStats = stats.seriesStats().values();
+
+    // Matcher matcher = Pattern.compile("^.*(2[0-9]{3}).*$").matcher(seriesId);
+    // Map<String, SeriesStats> seriesStats = stats.seriesStats();
+    // Optional<Integer> thisYear =
+    //     matcher.matches() ? Optional.of(Integer.parseInt(matcher.group(1))) : Optional.empty();
 
     // Select this season if stats are available
-    if (seriesStats.containsKey(seriesId)
-        && seriesStats
-            .get(seriesId)
+    Optional<SeriesStats> thisSeason =
+        seriesStats.stream()
+            .filter(s -> s.year().orElse(0) == seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .findFirst();
+    if (thisSeason.isPresent()
+        && thisSeason
+            .get()
             .pitching()
             .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
             .orElse(false)) {
-      return seriesStats.get(seriesId);
+      return thisSeason.get();
     }
 
-    // else try to find previous season stats
+    // else try to find last season stats
     Optional<SeriesStats> lastSeason =
-        seriesStats.values().stream()
-            .filter(s -> !s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+        seriesStats.stream()
+            .filter(
+                s ->
+                    s.year().orElse(0) == (seriesIdParsed.year().orElse(-1) - 1)
+                        && !s.otherSeries())
             .findFirst();
     if (lastSeason
         .map(
@@ -551,10 +589,10 @@ public class FilesService {
 
     // else try to find other series stats this year
     Optional<SeriesStats> otherSeries =
-        seriesStats.values().stream()
+        seriesStats.stream()
             .filter(
                 s ->
-                    s.year().filter(y -> y.equals(thisYear.orElse(0))).isPresent()
+                    s.year().filter(y -> y.equals(seriesIdParsed.year().orElse(0))).isPresent()
                         && s.otherSeries())
             .findFirst();
     if (otherSeries
@@ -567,9 +605,25 @@ public class FilesService {
       return otherSeries.get();
     }
 
+    // else try to find previous season stats
+    Optional<SeriesStats> prevSeason =
+        seriesStats.stream()
+            .filter(s -> s.year().orElse(0) < seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .findFirst();
+    if (prevSeason
+        .map(
+            s ->
+                s.pitching()
+                    .map(p -> p.appearances() > MINIMUM_APPEARANCES_PITCHING_STATS)
+                    .orElse(false))
+        .orElse(false)) {
+      return prevSeason.get();
+    }
+
     // else try to find other series previous season stats
     Optional<SeriesStats> otherSeriesLastSeason =
-        seriesStats.values().stream()
+        seriesStats.stream()
             .filter(s -> s.otherSeries())
             .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
             .findFirst();
@@ -584,7 +638,7 @@ public class FilesService {
     }
 
     // else pick stats with most appearances
-    return seriesStats.values().stream()
+    return seriesStats.stream()
         .sorted(
             (s1, s2) ->
                 s2.pitching().map(p -> p.appearances()).orElse(0)
@@ -697,5 +751,20 @@ public class FilesService {
 
   private boolean isValidPosition(final String position) {
     return List.of("P", "C", "1B", "2B", "3B", "SS", "LF", "CF", "RF").contains(position);
+  }
+
+  private SeriesId parseSeriesId(final String seriesId) {
+
+    SeriesIdImpl.Builder builder = SeriesIdImpl.builder().id(seriesId);
+    final Pattern pattern = Pattern.compile("^(.*)(2[0-9]{3})(.*)$");
+    final Matcher matcher = pattern.matcher(seriesId);
+
+    if (matcher.matches()) {
+      builder
+          .prefix(matcher.group(1))
+          .year(Integer.parseInt(matcher.group(2)))
+          .postfix(matcher.group(3));
+    }
+    return builder.build();
   }
 }

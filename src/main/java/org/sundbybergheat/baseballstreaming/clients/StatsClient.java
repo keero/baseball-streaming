@@ -1,42 +1,51 @@
 package org.sundbybergheat.baseballstreaming.clients;
 
 import java.io.IOException;
-import java.net.URL;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
+import org.apache.commons.text.similarity.LevenshteinDistance;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Tag;
-import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.sundbybergheat.baseballstreaming.models.JsonMapper;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
 import org.sundbybergheat.baseballstreaming.models.stats.AllStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
 import org.sundbybergheat.baseballstreaming.models.stats.BatterStatsImpl;
+import org.sundbybergheat.baseballstreaming.models.stats.CareerStats;
+import org.sundbybergheat.baseballstreaming.models.stats.Category;
+import org.sundbybergheat.baseballstreaming.models.stats.CategoryStats;
+import org.sundbybergheat.baseballstreaming.models.stats.CategoryStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
 import org.sundbybergheat.baseballstreaming.models.stats.PitcherStatsImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesId;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesIdImpl;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
 import org.sundbybergheat.baseballstreaming.models.stats.SeriesStatsImpl;
+import org.sundbybergheat.baseballstreaming.models.stats.StatsDataSet;
 import org.sundbybergheat.baseballstreaming.models.stats.StatsException;
 
 public class StatsClient {
+
   private static final Logger LOG = LoggerFactory.getLogger(StatsClient.class);
 
   private static final String PLAYER_STATS_URL = "%s/en/events/%s/teams/%s/players/%s";
-
-  private static final String BATTING_STATS_HEADER = "BATTING STATS";
-  private static final String PITCHING_STATS_HEADER = "PITCHING STATS";
+  private static final String PLAYER_STATS_API_URL =
+      "%s/api/v1/player/stats?tab=career&fedId=%s&eventCategory=%s&pId=%s";
 
   private final OkHttpClient client;
   private final String baseUrl;
@@ -50,109 +59,435 @@ public class StatsClient {
       final String playerName,
       final String playerId,
       final String teamId,
-      final String seriesId,
+      final SeriesId seriesId,
       final boolean onlyUseThisSeriesStats)
       throws StatsException, IOException {
-    Map<String, SeriesStats> seriesStats = new HashMap<String, SeriesStats>();
-    String thisUri = String.format(PLAYER_STATS_URL, baseUrl, seriesId, teamId, playerId);
+    final Map<String, SeriesStats> seriesStats = new HashMap<String, SeriesStats>();
+    final String thisUri =
+        String.format(PLAYER_STATS_URL, baseUrl, seriesId.id(), teamId, playerId);
 
-    SeriesId thisSeriesId = parseSeriesId(seriesId);
-    Optional<Integer> thisYear = thisSeriesId.year();
+    final Document doc = Jsoup.connect(thisUri).get();
+    final String fullCareerLink = getFullCareerLink(doc);
+    Optional<String> teamFlagUrl = parseTeamFlagUrl(doc);
+    Optional<String> playerImageUrl = parsePlayerImageUrl(doc);
+    final List<Category> categories = getCategories(fullCareerLink);
+    final String apiPlayerId = getAPIPlayerId(fullCareerLink);
 
-    LOG.info("Fetching stats for {} (id={}) in {}", playerName, playerId, seriesId);
-    Document thisDoc = getHtmlDoc(thisUri);
-    seriesStats.put(
-        seriesId,
-        parsePlayerSeriesStats(thisDoc, playerId, teamId, thisUri)
-            .id(seriesId)
-            .seriesName(seriesId)
-            .year(thisYear)
-            .build());
+    Category thisCategory = getThisCategory(categories, seriesId.id());
 
-    Optional<Element> table = getTableForHeading("Other events", thisDoc);
-    if (!onlyUseThisSeriesStats && table.isPresent()) {
-      Elements rows = table.get().getElementsByTag("tbody").first().getElementsByTag("tr");
+    Optional<BatterStats> careerBatting = Optional.empty();
+    Optional<PitcherStats> careerPitching = Optional.empty();
 
-      for (Element element : rows) {
-        Optional<Element> link = element.getElementsByTag("a").stream().findFirst();
-        if (link.isPresent()) {
-          String otherName = link.get().text();
-          String uri = link.get().absUrl("href");
-          String path = new URL(uri).getPath();
+    for (Category category : categories) {
+      final boolean otherSeries = !category.value().equals(thisCategory.value());
+      if (onlyUseThisSeriesStats && otherSeries) {
+        continue;
+      }
+      LOG.info("Fetching stats for {} (id={}) in '{}'.", playerName, playerId, category.text());
+      CategoryStats categoryStats = getCategoryStats(category, apiPlayerId);
+      Map<String, SeriesStats> mappedStats =
+          mapCategoryStats(
+              categoryStats, playerId, otherSeries, seriesId, teamFlagUrl, playerImageUrl);
+      seriesStats.putAll(mappedStats);
 
-          Pattern pathPattern1 =
-              Pattern.compile("^/+([^/]+)/events/([^/]+)/teams/([^/]+)/players/([^/]+)$");
-          Pattern pathPattern2 =
-              Pattern.compile("^/+([^/]+)/([^/]+)/teams/([^/]+)/players/([^/]+)$");
-          Matcher pathMatcher1 = pathPattern1.matcher(path);
-          Matcher pathMatcher2 = pathPattern2.matcher(path);
+      if (!otherSeries) {
 
-          String lang;
-          SeriesId otherSeriesId;
-          String otherTeamId;
-          String otherPlayerId;
+        LOG.info("Selecting '{}' career stats for {}", category.text(), playerName);
 
-          if (pathMatcher1.matches()) {
-            lang = pathMatcher1.group(1);
-            otherSeriesId = parseSeriesId(pathMatcher1.group(2));
-            otherTeamId = pathMatcher1.group(3);
-            otherPlayerId = pathMatcher1.group(4);
-          } else if (pathMatcher2.matches()) {
-            lang = "en";
-            otherSeriesId = parseSeriesId(pathMatcher2.group(2));
-            otherTeamId = pathMatcher2.group(3);
-            otherPlayerId = pathMatcher2.group(4);
-          } else {
-            LOG.warn(
-                "Could not extract info from path {} (unrecognized pattern). Skipping stats for {}",
-                path,
-                otherName);
-            continue;
-          }
+        String battingHtml =
+            String.format("<table>%s</table>", categoryStats.careerStats().total().battingTotal());
+        String pitchingHtml =
+            String.format("<table>%s</table>", categoryStats.careerStats().total().pitchingTotal());
 
-          final Optional<Integer> otherYear = otherSeriesId.year();
-          final boolean sameSeries =
-              thisSeriesId.prefix().isPresent()
-                  && thisSeriesId.postfix().isPresent()
-                  && thisSeriesId.prefix().equals(otherSeriesId.prefix())
-                  && thisSeriesId.postfix().equals(otherSeriesId.postfix());
-
-          LOG.info(
-              "Fetching stats for {} (id={}) in {} (same = {})",
-              playerName,
-              otherPlayerId,
-              otherSeriesId.id(),
-              sameSeries);
-
-          String patchedUri = uri;
-
-          if (!"en".equals(lang)) {
-            String patchedPath =
-                String.format(
-                    "/en/events/%s/teams/%s/players/%s",
-                    otherSeriesId.id(), otherTeamId, otherPlayerId);
-            patchedUri = uri.replace(path, patchedPath);
-          }
-
-          Document doc = getHtmlDoc(patchedUri);
-
-          seriesStats.put(
-              otherSeriesId.id(),
-              parsePlayerSeriesStats(doc, otherPlayerId, otherTeamId, patchedUri)
-                  .id(otherSeriesId.id())
-                  .seriesName(otherName)
-                  .year(otherYear)
-                  .otherSeries(!sameSeries)
-                  .build());
-        }
+        careerBatting = parseTotalBatterStats(battingHtml, playerId);
+        careerPitching = parseTotalPitcherStats(pitchingHtml, playerId);
       }
     }
 
     return AllStatsImpl.builder()
         .seriesStats(seriesStats)
-        .careerBatting(CareerStatsTools.getCareerBattingStats(seriesStats.values()))
-        .careerPitching(CareerStatsTools.getCareerPitchingStats(seriesStats.values()))
+        .careerBatting(careerBatting)
+        .careerPitching(careerPitching)
         .build();
+  }
+
+  private Optional<String> parseTeamFlagUrl(final Document doc) {
+    Optional<String> findFirst =
+        doc.getElementsByClass("flag-icon").stream()
+            .filter(e -> e.tag().equals(Tag.valueOf("img")))
+            .map(e -> e.attr("src"))
+            .findFirst();
+    return findFirst;
+  }
+
+  private Optional<String> parsePlayerImageUrl(final Document doc) {
+    return doc.getElementsByClass("player-image").stream().map(e -> e.attr("src")).findFirst();
+  }
+
+  private Map<String, SeriesStats> mapCategoryStats(
+      final CategoryStats categoryStats,
+      final String playerId,
+      final boolean otherSeries,
+      final SeriesId thisSeriesId,
+      final Optional<String> teamFlagUrl,
+      final Optional<String> playerImageUrl) {
+    Map<String, SeriesStats> result = new HashMap<String, SeriesStats>();
+    String battingHtml = categoryStats.careerStats().stats().b();
+    String pitchingHtml = categoryStats.careerStats().stats().p();
+    Map<String, BatterStats> batterStats =
+        battingHtml.isEmpty()
+            ? Collections.emptyMap()
+            : parseBatterStats(String.format("<table>%s</table>", battingHtml), playerId);
+    Map<String, PitcherStats> pitcherStats =
+        pitchingHtml.isEmpty()
+            ? Collections.emptyMap()
+            : parsePitcherStats(String.format("<table>%s</table>", pitchingHtml), playerId);
+
+    Set<String> years = new HashSet<String>(batterStats.keySet());
+    years.addAll(pitcherStats.keySet());
+
+    for (String year : years) {
+      String seriesId =
+          !otherSeries && thisSeriesId.year().orElse(0).equals(Integer.parseInt(year))
+              ? thisSeriesId.id()
+              : String.format("%s-%s", year, categoryStats.category().value());
+      SeriesStats seriesStats =
+          SeriesStatsImpl.builder()
+              .id(seriesId)
+              .year(Integer.parseInt(year))
+              .otherSeries(otherSeries)
+              .seriesName(String.format("%s %s", categoryStats.category().text(), year))
+              .batting(Optional.ofNullable(batterStats.getOrDefault(year, null)))
+              .pitching(Optional.ofNullable(pitcherStats.getOrDefault(year, null)))
+              .teamFlagUrl(teamFlagUrl)
+              .playerImageUrl(playerImageUrl)
+              .build();
+      result.put(seriesId, seriesStats);
+    }
+    return result;
+  }
+
+  private Map<String, BatterStats> parseBatterStats(
+      final String battingHtml, final String playerId) {
+
+    Map<String, BatterStats> result = new HashMap<String, BatterStats>();
+
+    Document doc = Jsoup.parse(battingHtml);
+    List<String> years =
+        doc.getElementsByClass("year").stream().map(e -> e.text()).collect(Collectors.toList());
+
+    List<String> teamCodes =
+        doc.getElementsByClass("teamcode").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> games =
+        doc.getElementsByClass("g").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> atBats =
+        doc.getElementsByClass("ab").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> runs =
+        doc.getElementsByClass("r").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> hits =
+        doc.getElementsByClass("h").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> doubles =
+        doc.getElementsByClass("double").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> triples =
+        doc.getElementsByClass("triple").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> homeruns =
+        doc.getElementsByClass("hr").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> runsBattedIn =
+        doc.getElementsByClass("rbi").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> totalBases =
+        doc.getElementsByClass("tb").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> battingAverage =
+        doc.getElementsByClass("avg").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> slugging =
+        doc.getElementsByClass("slg").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> onBasePercentage =
+        doc.getElementsByClass("obp").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> onBasePercentagePlusSlugging =
+        doc.getElementsByClass("ops").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> walks =
+        doc.getElementsByClass("bb").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> hitByPitch =
+        doc.getElementsByClass("hbp").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> strikeouts =
+        doc.getElementsByClass("so").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> groundoutDoublePlay =
+        doc.getElementsByClass("gdp").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> sacrificeFlies =
+        doc.getElementsByClass("sf").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> sacrificeHits =
+        doc.getElementsByClass("sh").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> stolenBases =
+        doc.getElementsByClass("sb").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> caughtStealing =
+        doc.getElementsByClass("cs").stream().map(e -> e.text()).collect(Collectors.toList());
+
+    for (int i = 0; i < years.size(); i++) {
+      result.put(
+          years.get(i),
+          BatterStatsImpl.builder()
+              .playerId(playerId)
+              .teamId(teamCodes.get(i))
+              .games(Integer.parseInt(games.get(i)))
+              .atBats(Integer.parseInt(atBats.get(i)))
+              .runs(Integer.parseInt(runs.get(i)))
+              .hits(Integer.parseInt(hits.get(i)))
+              .doubles(Integer.parseInt(doubles.get(i)))
+              .triples(Integer.parseInt(triples.get(i)))
+              .homeruns(Integer.parseInt(homeruns.get(i)))
+              .runsBattedIn(Integer.parseInt(runsBattedIn.get(i)))
+              .totalBases(Integer.parseInt(totalBases.get(i)))
+              .battingAverage(battingAverage.get(i))
+              .slugging(slugging.get(i))
+              .onBasePercentage(onBasePercentage.get(i))
+              .onBasePercentagePlusSlugging(onBasePercentagePlusSlugging.get(i))
+              .walks(Integer.parseInt(walks.get(i)))
+              .hitByPitch(Integer.parseInt(hitByPitch.get(i)))
+              .strikeouts(Integer.parseInt(strikeouts.get(i)))
+              .groundoutDoublePlay(Integer.parseInt(groundoutDoublePlay.get(i)))
+              .sacrificeFlies(Integer.parseInt(sacrificeFlies.get(i)))
+              .sacrificeHits(Integer.parseInt(sacrificeHits.get(i)))
+              .stolenBases(Integer.parseInt(stolenBases.get(i)))
+              .caughtStealing(Integer.parseInt(caughtStealing.get(i)))
+              .build());
+    }
+    return result;
+  }
+
+  private Optional<BatterStats> parseTotalBatterStats(
+      final String battingHtml, final String playerId) {
+    Document doc = Jsoup.parse(battingHtml);
+    List<String> totals =
+        doc.getElementsByTag("th").stream().map(e -> e.text()).collect(Collectors.toList());
+    if (totals.size() != 25) {
+      return Optional.empty();
+    }
+    BatterStats batterStats =
+        BatterStatsImpl.builder()
+            .playerId(playerId)
+            .teamId("")
+            .games(Integer.parseInt(totals.get(3)))
+            .atBats(Integer.parseInt(totals.get(5)))
+            .runs(Integer.parseInt(totals.get(6)))
+            .hits(Integer.parseInt(totals.get(7)))
+            .doubles(Integer.parseInt(totals.get(8)))
+            .triples(Integer.parseInt(totals.get(9)))
+            .homeruns(Integer.parseInt(totals.get(10)))
+            .runsBattedIn(Integer.parseInt(totals.get(11)))
+            .totalBases(Integer.parseInt(totals.get(12)))
+            .walks(Integer.parseInt(totals.get(13)))
+            .hitByPitch(Integer.parseInt(totals.get(14)))
+            .strikeouts(Integer.parseInt(totals.get(15)))
+            .groundoutDoublePlay(Integer.parseInt(totals.get(16)))
+            .sacrificeFlies(Integer.parseInt(totals.get(17)))
+            .sacrificeHits(Integer.parseInt(totals.get(18)))
+            .stolenBases(Integer.parseInt(totals.get(19)))
+            .caughtStealing(Integer.parseInt(totals.get(20)))
+            .battingAverage(totals.get(21))
+            .slugging(totals.get(22))
+            .onBasePercentage(totals.get(23))
+            .onBasePercentagePlusSlugging(totals.get(24))
+            .build();
+
+    return Optional.of(batterStats);
+  }
+
+  private Map<String, PitcherStats> parsePitcherStats(
+      final String pitchingHtml, final String playerId) {
+
+    Map<String, PitcherStats> result = new HashMap<String, PitcherStats>();
+
+    Document doc = Jsoup.parse(pitchingHtml);
+    List<String> years =
+        doc.getElementsByClass("year").stream().map(e -> e.text()).collect(Collectors.toList());
+
+    List<String> teamCodes =
+        doc.getElementsByClass("teamcode").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> appearances =
+        doc.getElementsByClass("pitch_appear").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> wins =
+        doc.getElementsByClass("pitch_win").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> losses =
+        doc.getElementsByClass("pitch_loss").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> era =
+        doc.getElementsByClass("era").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> gamesStarted =
+        doc.getElementsByClass("pitch_gs").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> saves =
+        doc.getElementsByClass("pitch_save").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> completeGames =
+        doc.getElementsByClass("pitch_cg").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> shutouts =
+        doc.getElementsByClass("pitch_so").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> inningsPitched =
+        doc.getElementsByClass("pitch_ip").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> hitsAllowed =
+        doc.getElementsByClass("pitch_h").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> runsAllowed =
+        doc.getElementsByClass("pitch_r").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> earnedRunsAllowed =
+        doc.getElementsByClass("pitch_er").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> walksAllowed =
+        doc.getElementsByClass("pitch_bb").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> strikeouts =
+        doc.getElementsByClass("pitch_so").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> doublesAllowed =
+        doc.getElementsByClass("pitch_double").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> triplesAllowed =
+        doc.getElementsByClass("pitch_triple").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> homerunsAllowed =
+        doc.getElementsByClass("pitch_hr").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> atBats =
+        doc.getElementsByClass("pitch_ab").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> opponentBattingAverage =
+        doc.getElementsByClass("bavg").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> wildPitches =
+        doc.getElementsByClass("pitch_wp").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> hitByPitch =
+        doc.getElementsByClass("pitch_hbp").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> balks =
+        doc.getElementsByClass("pitch_bk").stream().map(e -> e.text()).collect(Collectors.toList());
+    List<String> sacrificeFliesAllowed =
+        doc.getElementsByClass("pitch_sfa").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> sacrificeHitsAllowed =
+        doc.getElementsByClass("pitch_sha").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> groundOuts =
+        doc.getElementsByClass("pitch_ground").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+    List<String> flyOuts =
+        doc.getElementsByClass("pitch_fly").stream()
+            .map(e -> e.text())
+            .collect(Collectors.toList());
+
+    for (int i = 0; i < years.size(); i++) {
+      result.put(
+          years.get(i),
+          PitcherStatsImpl.builder()
+              .playerId(playerId)
+              .teamId(teamCodes.get(i))
+              .appearances(Integer.parseInt(appearances.get(i)))
+              .wins(Integer.parseInt(wins.get(i)))
+              .losses(Integer.parseInt(losses.get(i)))
+              .era(era.get(i))
+              .gamesStarted(Integer.parseInt(gamesStarted.get(i)))
+              .saves(Integer.parseInt(saves.get(i)))
+              .completeGames(Integer.parseInt(completeGames.get(i)))
+              .shutouts(Integer.parseInt(shutouts.get(i)))
+              .inningsPitched(inningsPitched.get(i))
+              .hitsAllowed(Integer.parseInt(hitsAllowed.get(i)))
+              .runsAllowed(Integer.parseInt(runsAllowed.get(i)))
+              .earnedRunsAllowed(Integer.parseInt(earnedRunsAllowed.get(i)))
+              .walksAllowed(Integer.parseInt(walksAllowed.get(i)))
+              .strikeouts(Integer.parseInt(strikeouts.get(i)))
+              .doublesAllowed(Integer.parseInt(doublesAllowed.get(i)))
+              .triplesAllowed(Integer.parseInt(triplesAllowed.get(i)))
+              .homerunsAllowed(Integer.parseInt(homerunsAllowed.get(i)))
+              .atBats(Integer.parseInt(atBats.get(i)))
+              .opponentBattingAverage(opponentBattingAverage.get(i))
+              .wildPitches(Integer.parseInt(wildPitches.get(i)))
+              .hitByPitch(Integer.parseInt(hitByPitch.get(i)))
+              .balks(Integer.parseInt(balks.get(i)))
+              .sacrificeFliesAllowed(Integer.parseInt(sacrificeFliesAllowed.get(i)))
+              .sacrificeHitsAllowed(Integer.parseInt(sacrificeHitsAllowed.get(i)))
+              .groundOuts(Integer.parseInt(groundOuts.get(i)))
+              .flyOuts(Integer.parseInt(flyOuts.get(i)))
+              .gameLength(-1)
+              .build());
+    }
+    return result;
+  }
+
+  private Optional<PitcherStats> parseTotalPitcherStats(
+      final String pitchingHtml, final String playerId) {
+    Document doc = Jsoup.parse(pitchingHtml);
+    List<String> totals =
+        doc.getElementsByTag("th").stream().map(e -> e.text()).collect(Collectors.toList());
+    if (totals.size() != 29) {
+      return Optional.empty();
+    }
+    PitcherStats pitcherStats =
+        PitcherStatsImpl.builder()
+            .playerId(playerId)
+            .teamId("")
+            .appearances(Integer.parseInt(totals.get(5)))
+            .wins(Integer.parseInt(totals.get(2)))
+            .losses(Integer.parseInt(totals.get(3)))
+            .era(totals.get(4))
+            .gamesStarted(Integer.parseInt(totals.get(6)))
+            .saves(Integer.parseInt(totals.get(7)))
+            .completeGames(Integer.parseInt(totals.get(8)))
+            .shutouts(Integer.parseInt(totals.get(9)))
+            .inningsPitched(totals.get(10))
+            .hitsAllowed(Integer.parseInt(totals.get(11)))
+            .runsAllowed(Integer.parseInt(totals.get(12)))
+            .earnedRunsAllowed(Integer.parseInt(totals.get(13)))
+            .walksAllowed(Integer.parseInt(totals.get(14)))
+            .strikeouts(Integer.parseInt(totals.get(15)))
+            .doublesAllowed(Integer.parseInt(totals.get(16)))
+            .triplesAllowed(Integer.parseInt(totals.get(17)))
+            .homerunsAllowed(Integer.parseInt(totals.get(18)))
+            .atBats(Integer.parseInt(totals.get(19)))
+            .opponentBattingAverage(totals.get(20))
+            .wildPitches(Integer.parseInt(totals.get(21)))
+            .hitByPitch(Integer.parseInt(totals.get(22)))
+            .balks(Integer.parseInt(totals.get(23)))
+            .sacrificeFliesAllowed(Integer.parseInt(totals.get(24)))
+            .sacrificeHitsAllowed(Integer.parseInt(totals.get(25)))
+            .groundOuts(Integer.parseInt(totals.get(26)))
+            .flyOuts(Integer.parseInt(totals.get(27)))
+            .gameLength(-1)
+            .build();
+
+    return Optional.of(pitcherStats);
+  }
+
+  private String getFullCareerLink(final Document doc) throws StatsException {
+    final Element fullCareerButton = doc.getElementsByClass("full_career_btn").first();
+
+    if (fullCareerButton == null) {
+      throw new StatsException("Full Career button not found on stats page.");
+    }
+    return fullCareerButton.parent().attributes().get("href");
+  }
+
+  private List<Category> getCategories(final String fullCareerLink)
+      throws StatsException, IOException {
+    Request request = new okhttp3.Request.Builder().url(fullCareerLink).get().build();
+
+    Response response = client.newCall(request).execute();
+
+    if (!response.isSuccessful()) {
+      response.close();
+      throw new StatsException(
+          String.format("Failed to fetch %s (got %d)", fullCareerLink, response.code()));
+    }
+    String body = response.body().byteString().utf8();
+    response.close();
+    Pattern p = Pattern.compile(".*dataset\\s+=\\s+\\(([^;]+)\\);.*", Pattern.DOTALL);
+    Matcher m = p.matcher(body);
+    if (!m.matches()) {
+      throw new StatsException(String.format("Could not find Stats dataset @ %s", fullCareerLink));
+    }
+    StatsDataSet dataSet = JsonMapper.fromJson(m.group(1), StatsDataSet.class);
+    return dataSet.elementRS().categories();
   }
 
   private SeriesId parseSeriesId(final String seriesId) {
@@ -170,175 +505,31 @@ public class StatsClient {
     return builder.build();
   }
 
-  private Optional<Element> getTableForHeading(final String heading, final Document doc) {
-    return doc.getElementsByAttributeValue("class", "box-container").stream()
-        .filter(
-            e ->
-                !e.getElementsByTag("h3").isEmpty()
-                    && heading.equalsIgnoreCase(e.getElementsByTag("h3").get(0).text()))
-        .map(e -> e.getElementsByTag("table"))
-        .findFirst()
-        .map(t -> t.first());
-  }
-
-  private SeriesStatsImpl.Builder parsePlayerSeriesStats(
-      final Document doc, final String playerId, final String teamId, final String sourceUri) {
-    Optional<BatterStats> batterStats = parsePlayerBatterStats(doc, playerId, teamId);
-    Optional<PitcherStats> pitcherStats = parsePlayerPitcherStats(doc, playerId, teamId);
-    if (batterStats.isEmpty() && pitcherStats.isEmpty()) {
-      LOG.warn(
-          "Found neither batting nor pitching stats for player {} @ {}. "
-              + "Either it is the first game for the player in the series or something has changed on the stats page. "
-              + "Are we searching for the correct sections ('{}' for batting stats and '{}' for pitching stats)?",
-          playerId,
-          sourceUri,
-          BATTING_STATS_HEADER,
-          PITCHING_STATS_HEADER);
+  private String getAPIPlayerId(final String fullCareerLink) throws StatsException {
+    Pattern pattern = Pattern.compile("^.*-([0-9]+)/history$");
+    Matcher matcher = pattern.matcher(fullCareerLink);
+    if (!matcher.matches()) {
+      throw new StatsException(
+          String.format("Unable to get API Player ID from %s.", fullCareerLink));
     }
-    return SeriesStatsImpl.builder()
-        .teamFlagUrl(parseTeamFlagUrl(doc))
-        .playerImageUrl(parsePlayerImageUrl(doc))
-        .batting(batterStats)
-        .pitching(pitcherStats);
+    return matcher.group(1);
   }
 
-  private Optional<String> parseTeamFlagUrl(final Document doc) {
-    Optional<String> findFirst =
-        doc.getElementsByClass("flag-icon").stream()
-            .filter(e -> e.tag().equals(Tag.valueOf("img")))
-            .map(e -> e.attr("src"))
-            .findFirst();
-    return findFirst;
-  }
+  private CategoryStats getCategoryStats(final Category category, final String apiPlayerId)
+      throws StatsException, IOException {
 
-  private Optional<String> parsePlayerImageUrl(final Document doc) {
-    return doc.getElementsByClass("player-image").stream().map(e -> e.attr("src")).findFirst();
-  }
-
-  private Optional<BatterStats> parsePlayerBatterStats(
-      final Document doc, final String playerId, final String teamId) {
-
-    Optional<Element> table = getTableForHeading(BATTING_STATS_HEADER, doc);
-
-    if (table.isEmpty()) {
-      return Optional.empty();
-    }
-
-    int games = table.get().getElementsByTag("tbody").first().getElementsByTag("tr").size();
-
-    Optional<Elements> row =
-        table.map(
-            t ->
-                t.getElementsByTag("tfoot")
-                    .first()
-                    .getElementsByTag("tr")
-                    .first()
-                    .getElementsByTag("th"));
-
-    List<String> totals = List.of(row.get().text().split(" "));
-
-    BatterStatsImpl.Builder builder =
-        BatterStatsImpl.builder()
-            .playerId(playerId)
-            .teamId(teamId)
-            .games(games)
-            .atBats(Integer.parseInt(totals.get(2)))
-            .runs(Integer.parseInt(totals.get(3)))
-            .hits(Integer.parseInt(totals.get(4)))
-            .doubles(Integer.parseInt(totals.get(5)))
-            .triples(Integer.parseInt(totals.get(6)))
-            .homeruns(Integer.parseInt(totals.get(7)))
-            .runsBattedIn(Integer.parseInt(totals.get(8)))
-            .totalBases(Integer.parseInt(totals.get(9)))
-            .battingAverage(totals.get(10))
-            .slugging(totals.get(11))
-            .onBasePercentage(totals.get(12))
-            .onBasePercentagePlusSlugging(totals.get(13))
-            .walks(Integer.parseInt(totals.get(14)))
-            .hitByPitch(Integer.parseInt(totals.get(15)))
-            .strikeouts(Integer.parseInt(totals.get(16)))
-            .groundoutDoublePlay(Integer.parseInt(totals.get(17)))
-            .sacrificeFlies(Integer.parseInt(totals.get(18)))
-            .sacrificeHits(Integer.parseInt(totals.get(19)))
-            .stolenBases(Integer.parseInt(totals.get(20)))
-            .caughtStealing(Integer.parseInt(totals.get(21)));
-
-    return Optional.of(builder.build());
-  }
-
-  private Optional<PitcherStats> parsePlayerPitcherStats(
-      final Document doc, final String playerId, final String teamId) {
-
-    Optional<Element> table = getTableForHeading(PITCHING_STATS_HEADER, doc);
-
-    if (table.isEmpty()) {
-      return Optional.empty();
-    }
-
-    int appearances = table.get().getElementsByTag("tbody").first().getElementsByTag("tr").size();
-
-    Optional<Elements> row =
-        table.map(
-            t ->
-                t.getElementsByTag("tfoot")
-                    .first()
-                    .getElementsByTag("tr")
-                    .first()
-                    .getElementsByTag("th"));
-
-    List<String> totals = List.of(row.get().text().split(" "));
-
-    String era = totals.get(3);
-    String inningsPitched = totals.get(8);
-    int earnedRunsAllowed = Integer.parseInt(totals.get(11));
-
-    int gameLength = getGameLength(era, inningsPitched, earnedRunsAllowed);
-
-    PitcherStatsImpl.Builder builder =
-        PitcherStatsImpl.builder()
-            .playerId(playerId)
-            .teamId(teamId)
-            .appearances(appearances)
-            .wins(Integer.parseInt(totals.get(1)))
-            .losses(Integer.parseInt(totals.get(2)))
-            .era(era)
-            .gamesStarted(Integer.parseInt(totals.get(4)))
-            .saves(Integer.parseInt(totals.get(5)))
-            .completeGames(Integer.parseInt(totals.get(6)))
-            .shutouts(Integer.parseInt(totals.get(7)))
-            .inningsPitched(inningsPitched)
-            .hitsAllowed(Integer.parseInt(totals.get(9)))
-            .runsAllowed(Integer.parseInt(totals.get(10)))
-            .earnedRunsAllowed(earnedRunsAllowed)
-            .walksAllowed(Integer.parseInt(totals.get(12)))
-            .strikeouts(Integer.parseInt(totals.get(13)))
-            .doublesAllowed(Integer.parseInt(totals.get(14)))
-            .triplesAllowed(Integer.parseInt(totals.get(15)))
-            .homerunsAllowed(Integer.parseInt(totals.get(16)))
-            .atBats(Integer.parseInt(totals.get(17)))
-            .opponentBattingAverage(totals.get(18))
-            .wildPitches(Integer.parseInt(totals.get(19)))
-            .hitByPitch(Integer.parseInt(totals.get(20)))
-            .balks(Integer.parseInt(totals.get(21)))
-            .sacrificeFliesAllowed(Integer.parseInt(totals.get(22)))
-            .sacrificeHitsAllowed(Integer.parseInt(totals.get(23)))
-            .groundOuts(Integer.parseInt(totals.get(24)))
-            .flyOuts(Integer.parseInt(totals.get(25)))
-            .gameLength(gameLength);
-
-    return Optional.of(builder.build());
-  }
-
-  private Document getHtmlDoc(final String uri) throws StatsException, IOException {
-
+    final String uri =
+        String.format(
+            PLAYER_STATS_API_URL, baseUrl, category.fedId(), category.value(), apiPlayerId);
     Request request = new okhttp3.Request.Builder().url(uri).get().build();
 
     Response response = client.newCall(request).execute();
 
     if (response.isSuccessful()) {
-      String body = response.body().byteString().utf8();
+      String body = response.body().byteString().utf8().replaceAll("\\[\\]", "\"\"");
       response.close();
-      return Jsoup.parse(body);
+      CareerStats careerStats = JsonMapper.fromJson(body, CareerStats.class);
+      return CategoryStatsImpl.builder().careerStats(careerStats).category(category).build();
     }
     String responseString = response.toString();
     response.close();
@@ -351,12 +542,15 @@ public class StatsClient {
         String.format("Unexpected response from %s, got %s", uri, responseString));
   }
 
-  private int getGameLength(
-      final String era, final String inningsPitched, final int earnedRunsAllowed) {
-    double eraVal = Double.parseDouble(era);
-    String[] split = inningsPitched.split("\\.");
-    double inningsPitchedVal = Double.parseDouble(split[0]) + Double.parseDouble(split[1]) / 3.0;
-
-    return (int) Math.round(eraVal * inningsPitchedVal / earnedRunsAllowed);
+  private Category getThisCategory(final List<Category> categories, final String seriesId)
+      throws StatsException {
+    LevenshteinDistance distance = LevenshteinDistance.getDefaultInstance();
+    return categories.stream()
+        .sorted(
+            (a, b) ->
+                distance.apply(seriesId.toLowerCase(), a.value().toLowerCase())
+                    - distance.apply(seriesId.toLowerCase(), b.value().toLowerCase()))
+        .findFirst()
+        .orElseThrow(() -> new StatsException("Unable to get current series category"));
   }
 }
