@@ -183,8 +183,10 @@ public class FilesService {
         play.boxScore().entrySet().stream()
             .filter(
                 kv ->
-                    kv.getValue().playerId().equals(play.situation().pitcherId())
-                        && (kv.getKey().startsWith("19") || kv.getKey().startsWith("29")))
+                    kv.getKey()
+                        .startsWith(
+                            play.situation().currentInning().startsWith("TOP") ? "29" : "19"))
+            .sorted((a, b) -> Integer.parseInt(b.getKey()) - Integer.parseInt(a.getKey()))
             .findFirst()
             .map(kv -> kv.getValue())
             .get();
