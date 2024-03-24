@@ -476,7 +476,10 @@ public class FilesService {
     // Select this season if stats are available
     Optional<SeriesStats> thisSeason =
         seriesStats.stream()
-            .filter(s -> s.year().orElse(0) == seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .filter(
+                s ->
+                    s.year().orElse(0).intValue() == seriesIdParsed.year().orElse(-1).intValue()
+                        && !s.otherSeries())
             .findFirst();
     if (thisSeason.isPresent()
         && thisSeason
@@ -492,7 +495,8 @@ public class FilesService {
         seriesStats.stream()
             .filter(
                 s ->
-                    s.year().orElse(0) == (seriesIdParsed.year().orElse(-1) - 1)
+                    s.year().orElse(0).intValue()
+                            == (seriesIdParsed.year().orElse(-1).intValue() - 1)
                         && !s.otherSeries())
             .findFirst();
     if (lastSeason
@@ -518,8 +522,11 @@ public class FilesService {
     // else try to find previous season stats
     Optional<SeriesStats> prevSeason =
         seriesStats.stream()
-            .filter(s -> s.year().orElse(0) < seriesIdParsed.year().orElse(-1) && !s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .filter(
+                s ->
+                    s.year().orElse(0).intValue() < seriesIdParsed.year().orElse(-1).intValue()
+                        && !s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0).intValue() - a.year().orElse(0).intValue())
             .findFirst();
     if (prevSeason
         .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
@@ -531,7 +538,7 @@ public class FilesService {
     Optional<SeriesStats> otherSeriesLastSeason =
         seriesStats.stream()
             .filter(s -> s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .sorted((a, b) -> b.year().orElse(0).intValue() - a.year().orElse(0).intValue())
             .findFirst();
     if (otherSeriesLastSeason
         .map(s -> s.batting().map(b -> b.games() > MINIMUM_GAMES_BATTING_STATS).orElse(false))
@@ -560,7 +567,10 @@ public class FilesService {
     // Select this season if stats are available
     Optional<SeriesStats> thisSeason =
         seriesStats.stream()
-            .filter(s -> s.year().orElse(0) == seriesIdParsed.year().orElse(-1) && !s.otherSeries())
+            .filter(
+                s ->
+                    s.year().orElse(0).intValue() == seriesIdParsed.year().orElse(-1).intValue()
+                        && !s.otherSeries())
             .findFirst();
     if (thisSeason.isPresent()
         && thisSeason
@@ -576,7 +586,8 @@ public class FilesService {
         seriesStats.stream()
             .filter(
                 s ->
-                    s.year().orElse(0) == (seriesIdParsed.year().orElse(-1) - 1)
+                    s.year().orElse(0).intValue()
+                            == (seriesIdParsed.year().orElse(-1).intValue() - 1)
                         && !s.otherSeries())
             .findFirst();
     if (lastSeason
@@ -610,8 +621,11 @@ public class FilesService {
     // else try to find previous season stats
     Optional<SeriesStats> prevSeason =
         seriesStats.stream()
-            .filter(s -> s.year().orElse(0) < seriesIdParsed.year().orElse(-1) && !s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .filter(
+                s ->
+                    s.year().orElse(0).intValue() < seriesIdParsed.year().orElse(-1).intValue()
+                        && !s.otherSeries())
+            .sorted((a, b) -> b.year().orElse(0).intValue() - a.year().orElse(0).intValue())
             .findFirst();
     if (prevSeason
         .map(
@@ -627,7 +641,7 @@ public class FilesService {
     Optional<SeriesStats> otherSeriesLastSeason =
         seriesStats.stream()
             .filter(s -> s.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
+            .sorted((a, b) -> b.year().orElse(0).intValue() - a.year().orElse(0).intValue())
             .findFirst();
     if (otherSeriesLastSeason
         .map(
@@ -643,8 +657,8 @@ public class FilesService {
     return seriesStats.stream()
         .sorted(
             (s1, s2) ->
-                s2.pitching().map(p -> p.appearances()).orElse(0)
-                    - s1.pitching().map(p -> p.appearances()).orElse(0))
+                s2.pitching().map(p -> p.appearances()).orElse(0).intValue()
+                    - s1.pitching().map(p -> p.appearances()).orElse(0).intValue())
         .findFirst()
         .orElse(null);
   }
