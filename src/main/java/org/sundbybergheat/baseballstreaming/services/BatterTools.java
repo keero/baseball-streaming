@@ -274,17 +274,19 @@ public class BatterTools {
       return String.format("This season: %s", summaryOfSeries(thisSeriesStats));
     }
 
-    final Optional<SeriesStats> lastSeason =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(
-                ss ->
-                    !ss.id().equals(seriesId)
-                        && !ss.otherSeries()
-                        && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-            .findFirst();
+    if (thisSeriesStats != null) {
+      final Optional<SeriesStats> lastSeason =
+          stats.get(playerId).seriesStats().values().stream()
+              .filter(
+                  ss ->
+                      !ss.id().equals(seriesId)
+                          && !ss.otherSeries()
+                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
+              .findFirst();
 
-    if (lastSeason.map(ls -> seriesContainsEnoughStats(ls)).orElse(false)) {
-      return String.format("Last season: %s", summaryOfSeries(lastSeason.get()));
+      if (lastSeason.map(ls -> seriesContainsEnoughStats(ls)).orElse(false)) {
+        return String.format("Last season: %s", summaryOfSeries(lastSeason.get()));
+      }
     }
 
     final List<SeriesStats> otherSeries =

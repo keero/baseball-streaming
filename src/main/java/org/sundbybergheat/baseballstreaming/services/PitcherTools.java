@@ -77,17 +77,19 @@ public class PitcherTools {
       return summaryOfSeries(thisSeriesStats);
     }
 
-    final Optional<SeriesStats> lastSeason =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(
-                ss ->
-                    !ss.id().equals(seriesId)
-                        && !ss.otherSeries()
-                        && ss.pitching().isPresent()
-                        && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-            .findFirst();
-    if (lastSeason.isPresent()) {
-      return summaryOfSeries(lastSeason.get());
+    if (thisSeriesStats != null) {
+      final Optional<SeriesStats> lastSeason =
+          stats.get(playerId).seriesStats().values().stream()
+              .filter(
+                  ss ->
+                      !ss.id().equals(seriesId)
+                          && !ss.otherSeries()
+                          && ss.pitching().isPresent()
+                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
+              .findFirst();
+      if (lastSeason.isPresent()) {
+        return summaryOfSeries(lastSeason.get());
+      }
     }
 
     final Optional<SeriesStats> otherSeries =
