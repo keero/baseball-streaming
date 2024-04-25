@@ -73,11 +73,11 @@ public class PitcherTools {
       final Map<String, AllStats> stats, final String playerId, final String seriesId) {
     final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
 
-    if (thisSeriesStats.pitching().isPresent()) {
-      return summaryOfSeries(thisSeriesStats);
-    }
-
     if (thisSeriesStats != null) {
+      if (thisSeriesStats.pitching().isPresent()) {
+        return summaryOfSeries(thisSeriesStats);
+      }
+
       final Optional<SeriesStats> lastSeason =
           stats.get(playerId).seriesStats().values().stream()
               .filter(
