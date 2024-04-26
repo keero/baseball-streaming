@@ -36,21 +36,23 @@ public class PitcherTools {
     final String playerId = pitcher.playerId();
     final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
 
-    if (thisSeriesStats.pitching().isPresent()) {
-      return "This Season";
-    }
+    if (thisSeriesStats != null) {
+      if (thisSeriesStats.pitching().isPresent()) {
+        return "This Season";
+      }
 
-    final Optional<SeriesStats> lastSeason =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(
-                ss ->
-                    !ss.id().equals(seriesId)
-                        && !ss.otherSeries()
-                        && ss.pitching().isPresent()
-                        && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-            .findFirst();
-    if (lastSeason.isPresent()) {
-      return "Last season";
+      final Optional<SeriesStats> lastSeason =
+          stats.get(playerId).seriesStats().values().stream()
+              .filter(
+                  ss ->
+                      !ss.id().equals(seriesId)
+                          && !ss.otherSeries()
+                          && ss.pitching().isPresent()
+                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
+              .findFirst();
+      if (lastSeason.isPresent()) {
+        return "Last season";
+      }
     }
 
     final Optional<SeriesStats> otherSeries =
