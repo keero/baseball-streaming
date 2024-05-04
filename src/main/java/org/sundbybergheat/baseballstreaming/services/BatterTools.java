@@ -321,7 +321,7 @@ public class BatterTools {
   }
 
   private static String summaryOfSeries(final SeriesStats seriesStats) {
-    if (seriesStats.batting().isEmpty()) {
+    if (seriesStats == null || seriesStats.batting() == null || seriesStats.batting().isEmpty()) {
       return "First plate appearance";
     }
 

@@ -105,7 +105,7 @@ public class PitcherTools {
   }
 
   private static String summaryOfSeries(final SeriesStats seriesStats) {
-    if (seriesStats.pitching().isEmpty()) {
+    if (seriesStats == null || seriesStats.pitching() == null || seriesStats.pitching().isEmpty()) {
       return "First appearance";
     }
 

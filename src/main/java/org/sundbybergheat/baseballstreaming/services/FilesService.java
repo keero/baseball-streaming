@@ -156,12 +156,8 @@ public class FilesService {
     filesClient.writeStringToFile(
         "count.txt",
         String.format("%d - %d", play.situation().balls(), play.situation().strikes()));
-    filesClient.writeStringToFile(
-        "balls.txt",
-        Integer.toString(play.situation().balls()));
-    filesClient.writeStringToFile(
-        "strikes.txt",
-        Integer.toString(play.situation().strikes()));
+    filesClient.writeStringToFile("balls.txt", Integer.toString(play.situation().balls()));
+    filesClient.writeStringToFile("strikes.txt", Integer.toString(play.situation().strikes()));
   }
 
   private void updateBases() throws IOException {
