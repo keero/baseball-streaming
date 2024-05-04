@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
+import org.jetbrains.annotations.Nullable;
 
 @Immutable
 @JsonSerialize(as = SituationImpl.class)
@@ -34,6 +35,7 @@ public interface Situation {
   String pitcherId();
 
   @JsonProperty("pitcherthrows")
+  @Nullable
   Arm pitcherThrows();
 
   @JsonProperty("pitcherera")
