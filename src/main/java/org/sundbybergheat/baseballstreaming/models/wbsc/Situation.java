@@ -23,6 +23,7 @@ public interface Situation {
   @JsonProperty("batterid")
   String batterId();
 
+  @Nullable
   Arm bats();
 
   String batting();
