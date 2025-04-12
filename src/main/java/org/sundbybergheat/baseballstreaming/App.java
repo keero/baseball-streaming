@@ -66,7 +66,8 @@ public class App {
       return;
     }
 
-    final boolean onlyUseThisSeriesStats = cmd.hasOption("l");
+    // Due to rate-limiting on WBSC APIs, always only fetch this series stats
+    final boolean onlyUseThisSeriesStats = true;
 
     String target = null;
     String seriesId = null;

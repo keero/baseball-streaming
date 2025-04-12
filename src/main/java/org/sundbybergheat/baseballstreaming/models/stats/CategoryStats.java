@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
+import org.sundbybergheat.baseballstreaming.models.stats.wbsc.CareerStats;
 
 @Immutable
 @JsonSerialize(as = CategoryStatsImpl.class)

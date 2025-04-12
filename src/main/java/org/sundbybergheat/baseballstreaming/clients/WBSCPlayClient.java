@@ -16,6 +16,9 @@ import org.sundbybergheat.baseballstreaming.models.wbsc.WBSCException;
 public class WBSCPlayClient {
   private static final Logger LOG = LoggerFactory.getLogger(WBSCPlayClient.class);
 
+  private static final String HTTP_CLIENT_USER_AGENT =
+      "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36";
+
   private static final String LATEST_URL = "%s/gamedata/%s/latest.json?_=%d";
   private static final String PLAY_URL = "%s/gamedata/%s/play%d.json?_=%d";
   private final OkHttpClient client;
@@ -30,7 +33,12 @@ public class WBSCPlayClient {
 
     String uri = String.format(LATEST_URL, baseUrl, gameId, Instant.now().toEpochMilli());
 
-    Request request = new okhttp3.Request.Builder().url(uri).get().build();
+    Request request =
+        new okhttp3.Request.Builder()
+            .url(uri)
+            .addHeader("user-agent", HTTP_CLIENT_USER_AGENT)
+            .get()
+            .build();
 
     Response response = client.newCall(request).execute();
 
@@ -69,7 +77,12 @@ public class WBSCPlayClient {
       throws IOException, WBSCException {
     String uri = String.format(PLAY_URL, baseUrl, gameId, play, Instant.now().toEpochMilli());
 
-    Request request = new okhttp3.Request.Builder().url(uri).get().build();
+    Request request =
+        new okhttp3.Request.Builder()
+            .url(uri)
+            .addHeader("user-agent", HTTP_CLIENT_USER_AGENT)
+            .get()
+            .build();
 
     Response response = client.newCall(request).execute();
 
