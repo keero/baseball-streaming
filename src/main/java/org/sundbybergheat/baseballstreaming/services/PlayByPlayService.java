@@ -6,10 +6,9 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.clients.WBSCPlayClient;
-import org.sundbybergheat.baseballstreaming.models.stats.StatsException;
-import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
-import org.sundbybergheat.baseballstreaming.models.wbsc.PlayData;
 import org.sundbybergheat.baseballstreaming.models.wbsc.WBSCException;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayData;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayWrapper;
 
 public class PlayByPlayService implements Runnable {
   private static final Logger LOG = LoggerFactory.getLogger(PlayByPlayService.class);
@@ -57,14 +56,14 @@ public class PlayByPlayService implements Runnable {
           }
           continue;
         }
-        Optional<Play> play = Optional.empty();
+        Optional<PlayWrapper> play = Optional.empty();
         if (runMode.equals(RunMode.live)) {
           int nextPlay = Math.max(maybeLatestPlay.get(), currentPlay);
           play = client.optimisticGetPlay(gameId, nextPlay);
-          if (currentPlay == play.map(p -> p.playNumber()).orElse(currentPlay)) {
+          if (currentPlay == play.map(p -> p.number()).orElse(currentPlay)) {
             continue;
           }
-          currentPlay = play.map(p -> p.playNumber()).orElse(currentPlay);
+          currentPlay = play.map(p -> p.number()).orElse(currentPlay);
         } else {
           if (currentPlay == lastPlay) {
             lastPlay = maybeLatestPlay.get();
@@ -82,9 +81,9 @@ public class PlayByPlayService implements Runnable {
           LOG.warn("Play # {} could not be found.", currentPlay);
           continue;
         }
-        filesService.updatePlay(play.get());
+        filesService.updatePlay(play.get().play());
         PlayData playData =
-            play.get().playData().stream()
+            play.get().play().playData().stream()
                 .sorted((a, b) -> Integer.valueOf(b.atBat()) - Integer.valueOf(a.atBat()))
                 .findFirst()
                 .get();
@@ -92,9 +91,9 @@ public class PlayByPlayService implements Runnable {
         LOG.info(
             "Play # {} ({}): {}",
             currentPlay,
-            Instant.ofEpochMilli(playData.timestamp()),
+            Instant.ofEpochMilli(Long.parseLong(playData.timestamp())),
             playText);
-      } catch (IOException | WBSCException | InterruptedException | StatsException e) {
+      } catch (IOException | WBSCException | InterruptedException e) {
         LOG.error("Something went wrong. {}", e.getMessage());
       }
     }

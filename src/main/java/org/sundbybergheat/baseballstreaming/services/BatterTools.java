@@ -3,20 +3,16 @@ package org.sundbybergheat.baseballstreaming.services;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
-import org.sundbybergheat.baseballstreaming.models.stats.BatterStats;
-import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
-import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScore;
-import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScoreImpl;
-import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
-import org.sundbybergheat.baseballstreaming.models.wbsc.PlayData;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.Play;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayData;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.Player;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayerSeasonStats;
 
 public class BatterTools {
-  public static BoxScore aggregatedBoxScore(final String playerId, final Play play) {
+  public static Player aggregatedBoxScore(final String playerId, final Play play) {
 
     return play.boxScore().entrySet().stream()
         .filter(kv -> kv.getKey().startsWith("10") || kv.getKey().startsWith("20"))
@@ -24,43 +20,59 @@ public class BatterTools {
         .filter(bs -> playerId.equals(bs.playerId()))
         .reduce(
             (a, b) ->
-                BoxScoreImpl.builder()
-                    .firstName(a.firstName())
-                    .lastName(a.lastName())
-                    .name(a.name())
-                    .teamId(a.teamId())
-                    .teamCode(a.teamCode())
-                    .image(a.image())
-                    .inPlay(a.inPlay())
-                    .position(
-                        String.join(
-                            "/",
-                            Stream.concat(
-                                    Arrays.stream(a.position().orElse("").split("/")),
-                                    Arrays.stream(b.position().orElse("").split("/")))
-                                .collect(Collectors.toSet())))
-                    .reentry(a.reentry() + b.reentry())
-                    .playerId(a.playerId())
-                    .assists(a.assists() + b.assists())
-                    .atBats(a.atBats().orElse(0) + b.atBats().orElse(0))
-                    .caughtStealing(a.caughtStealing().orElse(0) + b.caughtStealing().orElse(0))
-                    .doubles(a.doubles().orElse(0) + b.doubles().orElse(0))
-                    .errors(a.errors() + b.errors())
-                    .hits(a.hits().orElse(0) + b.hits().orElse(0))
-                    .homeruns(a.homeruns().orElse(0) + b.homeruns().orElse(0))
-                    .leftOnBase(a.leftOnBase().orElse(0) + b.leftOnBase().orElse(0))
-                    .putOuts(a.putOuts() + b.putOuts())
-                    .runs(a.runs().orElse(0) + b.runs().orElse(0))
-                    .runsBattedIn(a.runsBattedIn().orElse(0) + b.runsBattedIn().orElse(0))
-                    .stolenBases(a.stolenBases().orElse(0) + b.stolenBases().orElse(0))
-                    .strikeOuts(a.strikeOuts().orElse(0) + b.strikeOuts().orElse(0))
-                    .triples(a.triples().orElse(0) + b.triples().orElse(0))
-                    .walks(a.walks().orElse(0) + b.walks().orElse(0))
-                    .build())
+                new Player(
+                    a.fullName(),
+                    a.firstName(),
+                    a.lastName(),
+                    a.playerId(),
+                    a.teamId(),
+                    a.teamCode(),
+                    a.imageUrl(),
+                    a.inPlay(),
+                    a.reEntry() + b.reEntry(),
+                    String.join(
+                        "/",
+                        Stream.concat(
+                                Arrays.stream(a.position().split("/")),
+                                Arrays.stream(b.position().split("/")))
+                            .collect(Collectors.toSet())),
+                    a.plateAppearances() + b.plateAppearances(),
+                    a.atBats() + b.atBats(),
+                    a.runs() + b.runs(),
+                    a.hits() + b.hits(),
+                    a.runsbattedIn() + b.runsbattedIn(),
+                    a.walks() + b.walks(),
+                    a.strikeouts() + b.strikeouts(),
+                    a.doubles() + b.doubles(),
+                    a.triples() + b.triples(),
+                    a.homeruns() + b.homeruns(),
+                    a.sacFlies() + b.sacFlies(),
+                    a.hitByPitch() + b.hitByPitch(),
+                    a.stolenBases() + b.stolenBases(),
+                    a.caughtStealing() + b.caughtStealing(),
+                    a.seasonStats(),
+                    a.leftOnBase() + b.leftOnBase(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    a.putOuts() + b.putOuts(),
+                    a.assists() + b.assists(),
+                    a.errors() + b.errors(),
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null,
+                    null))
         .get();
   }
 
-  private static List<PlayData> plateAppearances(final BoxScore batter, final Play play) {
+  private static List<PlayData> plateAppearances(final Player batter, final Play play) {
     List<PlayData> batterPlays =
         play.playData().stream()
             .filter(
@@ -73,75 +85,59 @@ public class BatterTools {
                   if (atBatCompare != 0) {
                     return atBatCompare;
                   }
-                  return Long.valueOf(b.timestamp() - a.timestamp()).intValue();
+                  return Long.valueOf(Long.parseLong(b.timestamp()) - Long.parseLong(a.timestamp()))
+                      .intValue();
                 })
             .collect(Collectors.toList());
     List<PlayData> plateApperances =
         batterPlays.stream()
-            .filter(bp -> bp.text().toLowerCase().startsWith(batter.name().toLowerCase()))
+            .filter(bp -> bp.text().toLowerCase().startsWith(batter.fullName().toLowerCase()))
             .collect(Collectors.toList());
     return plateApperances;
   }
 
-  public static String batterNarrative(
-      final BoxScore batter,
-      final Map<String, AllStats> stats,
-      final String seriesId,
-      final Play play) {
+  public static String batterNarrative(final Player batter, final Play play) {
     List<PlayData> plateApperances = plateAppearances(batter, play);
-    if (plateApperances.size() > 0) {
+    if (Optional.ofNullable(batter.plateAppearances()).orElse(0) > 0) {
       return summaryOfGame(batter, plateApperances);
     }
-    return summaryOfSeries(stats, batter.playerId(), seriesId);
+    return summaryOfSeason(batter.seasonStats());
   }
 
-  public static String batterNarrative(
-      final BoxScore batter, final SeriesStats stats, final Play play) {
-    List<PlayData> plateApperances = plateAppearances(batter, play);
-    if (plateApperances.size() > 0) {
-      return summaryOfGame(batter, plateApperances);
+  public static String batterNarrativeTitle(final Player batter) {
+    return Optional.ofNullable(batter.plateAppearances()).orElse(0) > 0 ? "In This Game" : "This Season";
+  }
+
+  private static String summaryOfGame(final Player batter, final List<PlayData> plateApperances) {
+
+    if (batter.plateAppearances() == 0) {
+      return "First plate appearance";
     }
-    return summaryOfSeries(stats);
-  }
 
-  public static String batterNarrativeTitle(
-      final BoxScore batter, final Play play, final String seriesName) {
-    List<PlayData> plateApperances = plateAppearances(batter, play);
-    if (plateApperances.size() > 0) {
-      return "In This Game";
-    }
-    return seriesName;
-  }
-
-  private static String summaryOfGame(final BoxScore batter, final List<PlayData> plateApperances) {
     List<String> summary = new ArrayList<String>();
-    if (batter.atBats().orElse(0) > 0) {
-      summary.add(String.format("%d for %d", batter.hits().orElse(0), batter.atBats().orElse(0)));
+    if (batter.atBats() > 0) {
+      summary.add(String.format("%s for %s", batter.hits(), batter.atBats()));
 
-      if (batter.hits().orElse(0) > 0) {
-        if (batter.homeruns().orElse(0) > 1) {
-          summary.add(batter.homeruns().get() + " HOME RUNS");
-        } else if (batter.homeruns().orElse(0) == 1) {
+      if (batter.hits() > 0) {
+        if (batter.homeruns() > 1) {
+          summary.add(batter.homeruns() + " HOME RUNS");
+        } else if (batter.homeruns() == 1) {
           summary.add("HOME RUN");
         }
 
-        if (batter.triples().orElse(0) > 1) {
-          summary.add(batter.triples().get() + " TRIPLES");
-        } else if (batter.triples().orElse(0) == 1) {
+        if (batter.triples() > 1) {
+          summary.add(batter.triples() + " TRIPLES");
+        } else if (batter.triples() == 1) {
           summary.add("TRIPLE");
         }
 
-        if (batter.doubles().orElse(0) > 1) {
-          summary.add(batter.doubles().get() + " DOUBLES");
-        } else if (batter.doubles().orElse(0) == 1) {
+        if (batter.doubles() > 1) {
+          summary.add(batter.doubles() + " DOUBLES");
+        } else if (batter.doubles() == 1) {
           summary.add("DOUBLE");
         }
 
-        int singles =
-            batter.hits().orElse(0)
-                - batter.homeruns().orElse(0)
-                - batter.triples().orElse(0)
-                - batter.doubles().orElse(0);
+        int singles = batter.hits() - batter.homeruns() - batter.triples() - batter.doubles();
 
         if (singles > 1) {
           summary.add(singles + " SINGLES");
@@ -169,9 +165,9 @@ public class BatterTools {
           summary.add("SAC HIT");
         }
 
-        if (batter.strikeOuts().orElse(0) > 1) {
-          summary.add(batter.strikeOuts().get() + " STRIKEOUTS");
-        } else if (batter.strikeOuts().orElse(0) == 1) {
+        if (batter.strikeouts() > 1) {
+          summary.add(batter.strikeouts() + " STRIKEOUTS");
+        } else if (batter.strikeouts() == 1) {
           summary.add("STRIKEOUT");
         }
 
@@ -207,18 +203,13 @@ public class BatterTools {
       }
     }
 
-    if (batter.walks().orElse(0) > 1) {
-      summary.add(batter.walks().get() + " WALKS");
-    } else if (batter.walks().orElse(0) == 1) {
+    if (batter.walks() > 1) {
+      summary.add(batter.walks() + " WALKS");
+    } else if (batter.walks() == 1) {
       summary.add("WALK");
     }
 
-    long hbp =
-        plateApperances.stream()
-            .filter(pa -> pa.text().toLowerCase().contains("hit by pitch"))
-            .count();
-
-    if (hbp > 0) {
+    if (batter.hitByPitch() > 0) {
       summary.add("HIT BY PITCH");
     }
 
@@ -238,9 +229,9 @@ public class BatterTools {
       summary.add("FIELDER'S CHOICE");
     }
 
-    if (batter.stolenBases().orElse(0) > 1) {
-      summary.add(batter.stolenBases().get() + " STOLEN BASES");
-    } else if (batter.stolenBases().orElse(0) == 1) {
+    if (batter.stolenBases() > 1) {
+      summary.add(batter.stolenBases() + " STOLEN BASES");
+    } else if (batter.stolenBases() == 1) {
       summary.add("STOLEN BASE");
     }
 
@@ -248,107 +239,46 @@ public class BatterTools {
       summary = summary.subList(0, 4);
     }
 
-    if (batter.runsBattedIn().orElse(0) > 1) {
-      summary.add(batter.runsBattedIn().get() + " RBI");
-    } else if (batter.runsBattedIn().orElse(0) == 1) {
+    if (batter.runsbattedIn() > 1) {
+      summary.add(batter.runsbattedIn() + " RBI");
+    } else if (batter.runsbattedIn() == 1) {
       summary.add("RBI");
     }
 
-    if (batter.runs().orElse(0) > 1) {
-      summary.add(batter.runs().get() + " RUNS");
-    } else if (batter.runs().orElse(0) == 1) {
+    if (batter.runs() > 1) {
+      summary.add(batter.runs() + " RUNS");
+    } else if (batter.runs() == 1) {
       summary.add("RUN");
     }
     if (summary.size() > 0) {
       return String.join(", ", summary);
     }
-    return "First plate appearance";
-  }
-
-  private static String summaryOfSeries(
-      final Map<String, AllStats> stats, final String playerId, final String seriesId) {
-
-    final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
-
-    if (seriesContainsEnoughStats(thisSeriesStats)) {
-      return String.format("This season: %s", summaryOfSeries(thisSeriesStats));
-    }
-
-    if (thisSeriesStats != null) {
-      final Optional<SeriesStats> lastSeason =
-          stats.get(playerId).seriesStats().values().stream()
-              .filter(
-                  ss ->
-                      !ss.id().equals(seriesId)
-                          && !ss.otherSeries()
-                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-              .findFirst();
-
-      if (lastSeason.map(ls -> seriesContainsEnoughStats(ls)).orElse(false)) {
-        return String.format("Last season: %s", summaryOfSeries(lastSeason.get()));
-      }
-    }
-
-    final List<SeriesStats> otherSeries =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(ss -> !ss.id().equals(seriesId) && ss.otherSeries())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
-            .collect(Collectors.toList());
-
-    for (SeriesStats other : otherSeries) {
-      if (seriesContainsEnoughStats(other)) {
-        return String.format("%s:\n %s", other.seriesName(), summaryOfSeries(other));
-      }
-    }
 
     return "";
   }
 
-  private static boolean seriesContainsEnoughStats(final SeriesStats seriesStats) {
-    if (seriesStats == null || seriesStats.batting().isEmpty()) {
-      return false;
-    }
-    BatterStats stats = seriesStats.batting().get();
+  private static String summaryOfSeason(final PlayerSeasonStats stats) {
+    final Integer plateAppearances = Integer.parseInt(stats.plateAppearances());
+    final Integer atBats = Integer.parseInt(stats.atBats());
+    final Integer hits = Integer.parseInt(stats.hits());
+    final Integer walks = Integer.parseInt(stats.walks());
+    final Integer doubles = Integer.parseInt(stats.doubles());
+    final Integer triples = Integer.parseInt(stats.triples());
+    final Integer homeruns = Integer.parseInt(stats.homeruns());
+    final Integer hitByPitch = Integer.parseInt(stats.hitByPitch());
 
-    final Integer atBats = stats.atBats();
-    final Integer walksAndHitByPitch = stats.walks() + stats.hitByPitch();
-    final Integer plateAppearances =
-        atBats + walksAndHitByPitch + stats.sacrificeFlies() + stats.sacrificeHits();
-    if (plateAppearances == 0 && ".000".equals(stats.onBasePercentage())) {
-      return false;
-    }
-    return true;
-  }
-
-  private static String summaryOfSeries(final SeriesStats seriesStats) {
-    if (seriesStats == null || seriesStats.batting() == null || seriesStats.batting().isEmpty()) {
+    if (plateAppearances == 0) {
       return "First plate appearance";
     }
-
-    BatterStats stats = seriesStats.batting().get();
-
-    final Integer atBats = stats.atBats();
-    final Integer walksAndHitByPitch = stats.walks() + stats.hitByPitch();
-    final Integer stolenBases = stats.stolenBases();
-    final Integer plateAppearances =
-        atBats + walksAndHitByPitch + stats.sacrificeFlies() + stats.sacrificeHits();
 
     final List<String> summary = new ArrayList<String>();
 
-    if (plateAppearances == 0 && ".000".equals(stats.onBasePercentage())) {
-      return "First plate appearance";
-    }
-
     if (atBats > 0) {
-      summary.add(String.format("%d for %d", stats.hits(), atBats));
+      summary.add(String.format("%d for %d", hits, atBats));
     }
 
-    if (stats.homeruns() > 0) {
-      summary.add(String.format("%d HOMERUN%s", stats.homeruns(), stats.homeruns() > 1 ? "S" : ""));
-    }
-
-    if (stolenBases > 2 && stolenBases.doubleValue() / plateAppearances.doubleValue() > 0.2) {
-      summary.add(String.format("%d STOLEN BASES", stolenBases));
+    if (homeruns > 0) {
+      summary.add(String.format("%d HOMERUN%s", homeruns, homeruns > 1 ? "S" : ""));
     }
 
     if (summary.size() > 1) {
@@ -356,14 +286,21 @@ public class BatterTools {
           "%s   %s", summary.get(0), String.join(", ", summary.subList(1, summary.size())));
     }
 
-    if (stats.walks() > 0) {
-      summary.add(String.format("%d WALK%s", stats.walks(), stats.walks() > 1 ? "S" : ""));
+    if (doubles + triples + homeruns > 1) {
+      summary.add(String.format("%d EXTRA BASE HITS", doubles + triples + homeruns));
     }
 
-    if (stats.hitByPitch() > 0) {
-      summary.add(
-          String.format(
-              "HIT BY PITCH %d TIME%s", stats.hitByPitch(), stats.hitByPitch() > 1 ? "S" : ""));
+    if (summary.size() > 1) {
+      return String.format(
+          "%s   %s", summary.get(0), String.join(", ", summary.subList(1, summary.size())));
+    }
+
+    if (walks > 0) {
+      summary.add(String.format("%d WALK%s", walks, walks > 1 ? "S" : ""));
+    }
+
+    if (hitByPitch > 1) {
+      summary.add(String.format("HIT BY PITCH %d TIMES", hitByPitch));
     }
 
     return String.join(", ", summary);

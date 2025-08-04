@@ -1,68 +1,30 @@
 package org.sundbybergheat.baseballstreaming.services;
 
-import java.util.Map;
-import java.util.Optional;
-import org.sundbybergheat.baseballstreaming.models.stats.AllStats;
-import org.sundbybergheat.baseballstreaming.models.stats.PitcherStats;
-import org.sundbybergheat.baseballstreaming.models.stats.SeriesStats;
-import org.sundbybergheat.baseballstreaming.models.wbsc.BoxScore;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.Player;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayerSeasonStats;
 
 public class PitcherTools {
-  public static String pitcherNarrative(final BoxScore pitcher, final SeriesStats stats) {
+  public static String pitcherNarrative(final Player pitcher, final int gameLength) {
 
-    double inningsPitchedVal = inningsVal(pitcher.inningsPitched().orElse("0.0"));
+    double inningsPitchedVal = inningsVal(pitcher.inningsPitched());
     if (inningsPitchedVal > 2.0) {
       return summaryOfGame(pitcher);
     }
-    return summaryOfSeries(stats);
+    return summaryOfSeason(pitcher.seasonStats(), gameLength);
   }
 
-  public static String pitcherNarrative(
-      final BoxScore pitcher, final Map<String, AllStats> stats, final String seriesId) {
-    double inningsPitchedVal = inningsVal(pitcher.inningsPitched().orElse("0.0"));
-    if (inningsPitchedVal > 2.0) {
-      return summaryOfGame(pitcher);
-    }
-    return summaryOfSeries(stats, pitcher.playerId(), seriesId);
-  }
-
-  public static String pitcherNarrativeTitle(
-      final BoxScore pitcher, final Map<String, AllStats> stats, final String seriesId) {
-    double inningsPitchedVal = inningsVal(pitcher.inningsPitched().orElse("0.0"));
+  public static String pitcherNarrativeTitle(final Player pitcher) {
+    double inningsPitchedVal = inningsVal(pitcher.inningsPitched());
     if (inningsPitchedVal > 2.0) {
       return "In This Game";
     }
+    return "This Season";
+  }
 
-    final String playerId = pitcher.playerId();
-    final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
-
-    if (thisSeriesStats != null) {
-      if (thisSeriesStats.pitching().isPresent()) {
-        return "This Season";
-      }
-
-      final Optional<SeriesStats> lastSeason =
-          stats.get(playerId).seriesStats().values().stream()
-              .filter(
-                  ss ->
-                      !ss.id().equals(seriesId)
-                          && !ss.otherSeries()
-                          && ss.pitching().isPresent()
-                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-              .findFirst();
-      if (lastSeason.isPresent()) {
-        return "Last season";
-      }
-    }
-
-    final Optional<SeriesStats> otherSeries =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(
-                ss -> !ss.id().equals(seriesId) && ss.otherSeries() && ss.pitching().isPresent())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
-            .findFirst();
-
-    return otherSeries.map(os -> os.seriesName()).orElse("");
+  public static String inningsVal(final double inningsPitched) {
+    Double whole = Math.floor(inningsPitched);
+    Long rest = Math.round((inningsPitched - whole) * 3.0);
+    return "%d.%d".formatted(whole.intValue(), rest);
   }
 
   private static double inningsVal(String inningsPitched) {
@@ -71,64 +33,35 @@ public class PitcherTools {
     return inningsPitchedVal;
   }
 
-  private static String summaryOfSeries(
-      final Map<String, AllStats> stats, final String playerId, final String seriesId) {
-    final SeriesStats thisSeriesStats = stats.get(playerId).seriesStats().get(seriesId);
+  private static String summaryOfSeason(final PlayerSeasonStats stats, final int gameLength) {
+    final Integer earnedRuns = Integer.parseInt(stats.earnedRuns());
+    final Integer outs = Integer.parseInt(stats.outs());
+    final Integer walks = Integer.parseInt(stats.pitcherWalks());
+    final Integer strikeouts = Integer.parseInt(stats.pitcherStrikeouts());
 
-    if (thisSeriesStats != null) {
-      if (thisSeriesStats.pitching().isPresent()) {
-        return summaryOfSeries(thisSeriesStats);
-      }
-
-      final Optional<SeriesStats> lastSeason =
-          stats.get(playerId).seriesStats().values().stream()
-              .filter(
-                  ss ->
-                      !ss.id().equals(seriesId)
-                          && !ss.otherSeries()
-                          && ss.pitching().isPresent()
-                          && thisSeriesStats.year().orElse(0) - 1 == ss.year().orElse(0))
-              .findFirst();
-      if (lastSeason.isPresent()) {
-        return summaryOfSeries(lastSeason.get());
-      }
-    }
-
-    final Optional<SeriesStats> otherSeries =
-        stats.get(playerId).seriesStats().values().stream()
-            .filter(
-                ss -> !ss.id().equals(seriesId) && ss.otherSeries() && ss.pitching().isPresent())
-            .sorted((a, b) -> b.year().orElse(0) - a.year().orElse(0))
-            .findFirst();
-
-    return otherSeries.map(os -> summaryOfSeries(os)).orElse("");
-  }
-
-  private static String summaryOfSeries(final SeriesStats seriesStats) {
-    if (seriesStats == null || seriesStats.pitching() == null || seriesStats.pitching().isEmpty()) {
+    if (earnedRuns == 0 && outs == 0 && walks == 0 && strikeouts == 0) {
       return "First appearance";
     }
 
-    PitcherStats stats = seriesStats.pitching().get();
-    double innings = inningsVal(stats.inningsPitched());
-    double whip = (stats.hitsAllowed() + stats.walksAllowed()) / innings;
-    double k9 = (stats.strikeouts() / innings) * 9.0;
-    return String.format(
-        "%s IP  %s ERA  %s WHIP  %s K/9",
-        stats.inningsPitched(),
-        stats.era(),
-        String.format("%.2f", whip).replace(",", "."),
-        String.format("%.2f", k9).replace(",", "."));
+    double innings = outs / 3.0;
+    double era = earnedRuns / (innings / gameLength);
+    double k9 = (strikeouts / innings) * 9.0;
+    return "%s IP  %s ERA  %s K/9  %d BB"
+        .formatted(
+            inningsVal(innings),
+            String.format("%.2f", era).replace(",", "."),
+            String.format("%.2f", k9).replace(",", "."),
+            walks);
   }
 
-  private static String summaryOfGame(BoxScore pitcher) {
-    return String.format(
-        "%s IP  %d H  %d R  %d ER  %d BB  %s K",
-        pitcher.inningsPitched().orElse("0.0"),
-        pitcher.pitcherHits().orElse(0),
-        pitcher.pitcherRuns().orElse(0),
-        pitcher.earnedRuns().orElse(0),
-        pitcher.pitcherWalks().orElse(0),
-        pitcher.pitcherStrikeouts().orElse(0));
+  private static String summaryOfGame(Player pitcher) {
+    return "%s IP  %s H  %s R  %s ER  %s BB  %s K"
+        .formatted(
+            pitcher.inningsPitched(),
+            pitcher.pitcherHits(),
+            pitcher.pitcherRuns(),
+            pitcher.earnedRuns(),
+            pitcher.pitcherWalks(),
+            pitcher.pitcherStrikeouts());
   }
 }
