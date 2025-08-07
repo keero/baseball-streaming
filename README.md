@@ -1,11 +1,11 @@
 # baseball-streaming
-Java CLI application for fetching live data from WBSC game data (MyBallClub) and continuously write text and image files to disk.
+Java CLI application for fetching live data from WBSC game data (Ballclubz) and continuously write text and image files to disk.
 The produced files can then be consumed by, for instance, OBS Studio to produce overlays for a live stream.
 
 
 ## Download
 
-> **Make sure you have Java JDK 11 installed on your computer. OpenJDK 11 for windows may be downloaded [here](https://docs.microsoft.com/en-us/java/openjdk/download)**
+> **Make sure you have Java JDK 21 installed on your computer. OpenJDK 21 for windows may be downloaded [here](https://docs.microsoft.com/en-us/java/openjdk/download)**
 
 Download the desired release jar from [the release page](https://github.com/keero/baseball-streaming/releases)
 
