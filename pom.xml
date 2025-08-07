@@ -71,6 +71,11 @@
         <artifactId>commons-text</artifactId>
         <version>1.11.0</version>
     </dependency>
+    <dependency>
+        <groupId>io.vavr</groupId>
+        <artifactId>vavr</artifactId>
+        <version>0.10.6</version>
+    </dependency>
 
     <!-- https://mvnrepository.com/artifact/org.junit.jupiter/junit-jupiter-api -->
     <dependency>

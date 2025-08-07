@@ -1,20 +1,24 @@
 package org.sundbybergheat.baseballstreaming.services;
 
+import org.apache.commons.lang3.math.NumberUtils;
 import org.sundbybergheat.baseballstreaming.models.wbsc.play.Player;
 import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayerSeasonStats;
 
 public class PitcherTools {
   public static String pitcherNarrative(final Player pitcher, final int gameLength) {
 
-    double inningsPitchedVal = inningsVal(pitcher.inningsPitched());
+    double inningsPitchedVal = inningsVal(pitcher.inningsPitched().orElse("0.0"));
     if (inningsPitchedVal > 2.0) {
       return summaryOfGame(pitcher);
     }
-    return summaryOfSeason(pitcher.seasonStats(), gameLength);
+    return pitcher
+        .seasonStats()
+        .map(ss -> summaryOfSeason(ss, gameLength))
+        .orElse("No stats available yet.");
   }
 
   public static String pitcherNarrativeTitle(final Player pitcher) {
-    double inningsPitchedVal = inningsVal(pitcher.inningsPitched());
+    double inningsPitchedVal = inningsVal(pitcher.inningsPitched().orElse("0.0"));
     if (inningsPitchedVal > 2.0) {
       return "In This Game";
     }
@@ -27,17 +31,17 @@ public class PitcherTools {
     return "%d.%d".formatted(whole.intValue(), rest);
   }
 
-  private static double inningsVal(String inningsPitched) {
+  public static double inningsVal(String inningsPitched) {
     String[] split = inningsPitched.split("\\.");
     double inningsPitchedVal = Double.parseDouble(split[0]) + Double.parseDouble(split[1]) / 3.0;
     return inningsPitchedVal;
   }
 
   private static String summaryOfSeason(final PlayerSeasonStats stats, final int gameLength) {
-    final Integer earnedRuns = Integer.parseInt(stats.earnedRuns());
-    final Integer outs = Integer.parseInt(stats.outs());
-    final Integer walks = Integer.parseInt(stats.pitcherWalks());
-    final Integer strikeouts = Integer.parseInt(stats.pitcherStrikeouts());
+    final Integer earnedRuns = NumberUtils.toInt(stats.earnedRuns().orElse("0"));
+    final Integer outs = NumberUtils.toInt(stats.outs().orElse("0"));
+    final Integer walks = NumberUtils.toInt(stats.pitcherWalks().orElse("0"));
+    final Integer strikeouts = NumberUtils.toInt(stats.pitcherStrikeouts().orElse("0"));
 
     if (earnedRuns == 0 && outs == 0 && walks == 0 && strikeouts == 0) {
       return "First appearance";

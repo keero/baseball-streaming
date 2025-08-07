@@ -11,6 +11,7 @@ import org.apache.commons.cli.HelpFormatter;
 import org.apache.commons.cli.Options;
 import org.apache.commons.cli.ParseException;
 import org.sundbybergheat.baseballstreaming.clients.FilesClient;
+import org.sundbybergheat.baseballstreaming.clients.FilesClient.ImageIOHandler;
 import org.sundbybergheat.baseballstreaming.clients.WBSCPlayClient;
 import org.sundbybergheat.baseballstreaming.services.FilesService;
 import org.sundbybergheat.baseballstreaming.services.PlayByPlayService;
@@ -106,7 +107,8 @@ public class App {
     }
 
     OkHttpClient okHttpClient = new OkHttpClient();
-    FilesClient filesClient = new FilesClient(target);
+    ImageIOHandler imageIOHandler = new ImageIOHandler();
+    FilesClient filesClient = new FilesClient(target, imageIOHandler);
     FilesService filesService = new FilesService(filesClient);
     WBSCPlayClient wbscPlayClient = new WBSCPlayClient(okHttpClient, playsBaseUrl);
 

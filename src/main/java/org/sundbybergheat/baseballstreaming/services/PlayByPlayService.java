@@ -84,14 +84,17 @@ public class PlayByPlayService implements Runnable {
         filesService.updatePlay(play.get().play());
         PlayData playData =
             play.get().play().playData().stream()
-                .sorted((a, b) -> Integer.valueOf(b.atBat()) - Integer.valueOf(a.atBat()))
+                .sorted(
+                    (a, b) ->
+                        b.atBat().map(ab -> Integer.valueOf(ab)).orElse(0)
+                            - a.atBat().map(ab -> Integer.valueOf(ab)).orElse(0))
                 .findFirst()
                 .get();
-        playText = playData.text();
+        playText = playData.text().orElse("");
         LOG.info(
             "Play # {} ({}): {}",
             currentPlay,
-            Instant.ofEpochMilli(Long.parseLong(playData.timestamp())),
+            playData.timestamp().map(t -> Instant.ofEpochMilli(Long.parseLong(t))).orElse(null),
             playText);
       } catch (IOException | WBSCException | InterruptedException e) {
         LOG.error("Something went wrong. {}", e.getMessage());

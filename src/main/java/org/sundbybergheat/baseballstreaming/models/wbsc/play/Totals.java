@@ -1,9 +1,10 @@
 package org.sundbybergheat.baseballstreaming.models.wbsc.play;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Optional;
 
 public record Totals(
-    @JsonProperty("R") String runs,
-    @JsonProperty("H") String hits,
-    @JsonProperty("E") String errors,
-    @JsonProperty("LOB") String leftOnBase) {}
+    @JsonProperty("R") Optional<String> runs,
+    @JsonProperty("H") Optional<String> hits,
+    @JsonProperty("E") Optional<String> errors,
+    @JsonProperty("LOB") Optional<String> leftOnBase) {}
