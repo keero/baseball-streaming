@@ -2,12 +2,10 @@ package org.sundbybergheat.baseballstreaming.services;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,15 +26,6 @@ public class FilesService {
   }
 
   public void initResources() throws IOException {
-
-    if (!filesClient.fileExists("baseball-streaming-all-overlays.json")) {
-      String obsScenes =
-          IOUtils.resourceToString(
-              "/obs/baseball-streaming-all-overlays.json", StandardCharsets.UTF_8);
-      filesClient.writeStringToFile(
-          "baseball-streaming-all-overlays.json",
-          obsScenes.replace("[PATH_TO_OBS_RESOURCE_DIR]", filesClient.getResourceBasePath()));
-    }
     filesClient.copyFileFromResource("/bases/ooo.png", "bases/ooo.png");
     filesClient.copyFileFromResource("/bases/oox.png", "bases/oox.png");
     filesClient.copyFileFromResource("/bases/oxo.png", "bases/oxo.png");
@@ -285,8 +274,7 @@ public class FilesService {
                     Integer.parseInt(b.atBat().orElse("0"))
                         - Integer.parseInt(a.atBat().orElse("0")))
             .findFirst()
-            .get()
-            .batter();
+            .flatMap(pd -> pd.batter());
     Optional<String> onDeckBatterId = Optional.empty();
     if (maybeCurrentBatterKey.isPresent()) {
       String currentBatterKey = maybeCurrentBatterKey.get();
@@ -323,8 +311,7 @@ public class FilesService {
                     Integer.parseInt(b.atBat().orElse("0"))
                         - Integer.parseInt(a.atBat().orElse("0")))
             .findFirst()
-            .get()
-            .batter();
+            .flatMap(pd -> pd.batter());
     Optional<String> inHoleBatterId = Optional.empty();
     if (maybeCurrentBatterKey.isPresent()) {
       String currentBatterKey = maybeCurrentBatterKey.get();

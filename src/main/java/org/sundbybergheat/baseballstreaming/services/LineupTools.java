@@ -2,6 +2,7 @@ package org.sundbybergheat.baseballstreaming.services;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import org.sundbybergheat.baseballstreaming.models.wbsc.play.Play;
 import org.sundbybergheat.baseballstreaming.models.wbsc.play.Player;
 
@@ -36,13 +37,12 @@ public class LineupTools {
     List<Player> result = new ArrayList<Player>(9);
     for (int prefix = prefixBase; prefix < prefixBase + 9; prefix += 1) {
       final String strPrefix = Integer.toString(prefix);
-      final String curr =
+      final Optional<String> curr =
           play.boxScore().keySet().stream()
               .filter(key -> key.startsWith(strPrefix))
               .sorted((a, b) -> Integer.parseInt(b) - Integer.parseInt(a))
-              .findFirst()
-              .orElseThrow();
-      result.add(play.boxScore().get(curr));
+              .findFirst();
+      curr.ifPresent(c -> result.add(play.boxScore().get(c)));
     }
     return result;
   }
