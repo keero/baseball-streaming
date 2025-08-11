@@ -413,8 +413,13 @@ public class FilesService {
               "team_resources/player_images/%s-%s.png",
               player.teamId().get(), player.playerId().get());
 
-      // If player image doesn't exist locally but we have a URL to download from, then download it
-      if (!filesClient.fileExists(playerImagePath) && player.imageUrl().isPresent()) {
+      // If player image doesn't exist locally but we have a URL (that is not default image) to
+      // download from, then download it
+      if (!filesClient.fileExists(playerImagePath)
+          && player
+              .imageUrl()
+              .map(url -> !"https://static.wbsc.org/assets/images/default-player.jpg".equals(url))
+              .orElse(false)) {
         filesClient.copyImageFromURL(URI.create(player.imageUrl().get()).toURL(), playerImagePath);
       }
 
