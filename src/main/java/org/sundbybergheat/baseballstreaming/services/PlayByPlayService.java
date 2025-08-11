@@ -20,7 +20,6 @@ public class PlayByPlayService implements Runnable {
   private final int delay;
 
   private int currentPlay = 0;
-  private int latestHandledPlay = 0;
   private int lastPlay = 0;
 
   public PlayByPlayService(
