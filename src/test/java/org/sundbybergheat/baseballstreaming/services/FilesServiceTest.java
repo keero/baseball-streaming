@@ -155,6 +155,8 @@ public class FilesServiceTest {
         .thenReturn(ImageIO.read(IOUtils.resourceToURL("/wbsc/default-player.jpg")));
     String playJson = IOUtils.resourceToString(playJsonFile, StandardCharsets.UTF_8);
     FilesClient client = new FilesClient(tempDir.toString(), imageIOHandler);
+    client.copyFileFromResource(
+        "/wbsc/default-player.jpg", "team_resources/player_images/default.png");
     FilesService service = new FilesService(client);
     Play play = JsonMapper.fromJson(playJson, Play.class);
     service.updatePlay(play);

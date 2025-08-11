@@ -431,7 +431,7 @@ public class FilesService {
     }
     // If player image hasn't been copied, then use default image
     if (!imageCopied) {
-      filesClient.copyFileFromResource("/images/player-image-default.png", subdir + "/image.png");
+      filesClient.copyFile("team_resources/player_images/default.png", subdir + "/image.png");
     }
 
     String teamColorFile = "home_color.png";
