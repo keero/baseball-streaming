@@ -405,11 +405,15 @@ public class FilesService {
             ? (singles + doubles * 2.0 + triples * 3.0 + homeruns * 4.0) / atBats.doubleValue()
             : 0.0;
 
+    String battingAverageString = "%.3f".formatted(battingAverage).replace(",", ".");
+    String opsString = "%.3f".formatted(onBasePercentage + sluggingPercentage).replace(",", ".");
     filesClient.writeStringToFile(
-        subdir + "/avg.txt", "%.3f".formatted(battingAverage).replace(",", ".").substring(1));
+        subdir + "/avg.txt",
+        battingAverageString.startsWith("0")
+            ? battingAverageString.substring(1)
+            : battingAverageString);
     filesClient.writeStringToFile(
-        subdir + "/ops.txt",
-        "%.3f".formatted(onBasePercentage + sluggingPercentage).replace(",", ".").substring(1));
+        subdir + "/ops.txt", opsString.startsWith("0") ? opsString.substring(1) : opsString);
     filesClient.writeStringToFile(subdir + "/hr.txt", homeruns.toString());
     filesClient.writeStringToFile(subdir + "/stats_for_series.txt", "Stats for this season");
   }
