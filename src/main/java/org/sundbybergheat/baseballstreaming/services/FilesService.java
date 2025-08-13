@@ -75,25 +75,36 @@ public class FilesService {
     }
   }
 
-  private void updateScoreBoard() throws IOException {
-    String homeColorFile = String.format("team_resources/colors/%s.png", play.eventHome());
-    String awayColorFile = String.format("team_resources/colors/%s.png", play.eventAway());
-    String homeFlagFile = String.format("team_resources/flags/%s.png", play.eventHomeId());
-    String awayFlagFile = String.format("team_resources/flags/%s.png", play.eventAwayId());
-    String defaultHomeColorFile = "team_resources/colors/default_home.png";
-    String defaultAwayColorFile = "team_resources/colors/default_away.png";
-    String defaultFlagFile = "team_resources/flags/default.png";
+  private void copyFileByPriority(
+      final String pattern, final List<String> fileNames, final String to) throws IOException {
+    for (String fileName : fileNames) {
+      if (fileName != null && fileName.length() > 0) {
+        final String from = pattern.formatted(fileName);
+        if (filesClient.fileExists(from)) {
+          filesClient.copyFile(from, to);
+          return;
+        }
+      }
+    }
+  }
 
-    filesClient.copyFile(
-        filesClient.fileExists(homeColorFile) ? homeColorFile : defaultHomeColorFile,
-        "home_color.png");
-    filesClient.copyFile(
-        filesClient.fileExists(awayColorFile) ? awayColorFile : defaultAwayColorFile,
-        "away_color.png");
-    filesClient.copyFile(
-        filesClient.fileExists(homeFlagFile) ? homeFlagFile : defaultFlagFile, "home_flag.png");
-    filesClient.copyFile(
-        filesClient.fileExists(awayFlagFile) ? awayFlagFile : defaultFlagFile, "away_flag.png");
+  private void updateScoreBoard() throws IOException {
+
+    copyFileByPriority(
+        "team_resources/colors/%s.png",
+        List.of(play.eventHome().orElse(""), "default_home"), "home_color.png");
+    copyFileByPriority(
+        "team_resources/colors/%s.png",
+        List.of(play.eventAway().orElse(""), "default_away"), "away_color.png");
+    copyFileByPriority(
+        "team_resources/flags/%s.png",
+        List.of(play.eventHomeId().orElse(""), play.eventHome().orElse(""), "default"),
+        "home_flag.png");
+    copyFileByPriority(
+        "team_resources/flags/%s.png",
+        List.of(play.eventAwayId().orElse(""), play.eventAway().orElse(""), "default"),
+        "away_flag.png");
+
     filesClient.writeStringToFile("home_team.txt", play.eventHome().orElse("HOME"));
     filesClient.writeStringToFile("away_team.txt", play.eventAway().orElse("AWAY"));
 
@@ -174,7 +185,8 @@ public class FilesService {
   }
 
   private void updateOuts() throws IOException {
-    String outs = play.situation().map(s -> s.outs().orElse("0")).orElse("0");
+    String outs = play.situation().flatMap(s -> s.outs()).orElse("0");
+    filesClient.writeStringToFile("outs.txt", outs);
     String outsTarget = "outs.png";
     if ("1".equals(outs)) {
       filesClient.copyFile("outs/1.png", outsTarget);
