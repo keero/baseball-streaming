@@ -397,10 +397,13 @@ public class FilesService {
       atBats += stats.atBats().map(ab -> NumberUtils.toInt(ab)).orElse(0);
     }
 
-    Double battingAverage = hits.doubleValue() / atBats.doubleValue();
-    Double onBasePercentage = (hits + walks + hitByPitch) / plateAppearances.doubleValue();
+    Double battingAverage = atBats > 0 ? hits.doubleValue() / atBats.doubleValue() : 0.0;
+    Double onBasePercentage =
+        plateAppearances > 0 ? (hits + walks + hitByPitch) / plateAppearances.doubleValue() : 0.0;
     Double sluggingPercentage =
-        (singles + doubles * 2.0 + triples * 3.0 + homeruns * 4.0) / atBats.doubleValue();
+        atBats > 0
+            ? (singles + doubles * 2.0 + triples * 3.0 + homeruns * 4.0) / atBats.doubleValue()
+            : 0.0;
 
     filesClient.writeStringToFile(
         subdir + "/avg.txt", "%.3f".formatted(battingAverage).replace(",", ".").substring(1));
