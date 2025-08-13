@@ -89,6 +89,14 @@ public class FilesServiceTest {
 
     assertTrue(fileExistAndIsNonEmpty(playerImagesDir.get(), "default.png"));
     assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "default.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "ALB.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "KGA.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "LEK.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "RAT.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "STO.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "SUN.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "SVL.png"));
+    assertTrue(fileExistAndIsNonEmpty(flagsDir.get(), "UME.png"));
 
     assertTrue(fileExistAndIsNonEmpty(colorsDir.get(), "LEK.png"));
     assertTrue(fileExistAndIsNonEmpty(colorsDir.get(), "KGA.png"));
