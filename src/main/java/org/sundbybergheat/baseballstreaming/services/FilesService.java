@@ -2,13 +2,10 @@ package org.sundbybergheat.baseballstreaming.services;
 
 import java.io.IOException;
 import java.net.URI;
-import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.math.NumberUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,12 +54,14 @@ public class FilesService {
               } catch (IOException e) {
                 LOG.error("Unable to write team color file for {}", entry.getKey(), e);
               }
+              try {
+                filesClient.copyFileFromResource(
+                    "/images/team_flags/%s.png".formatted(entry.getKey()),
+                    "team_resources/flags/%s.png".formatted(entry.getKey()));
+              } catch (IOException e) {
+                LOG.debug("Unable to find club flag file for {}", entry.getKey(), e);
+              }
             });
-    List<String> flagFiles = IOUtils.readLines(FilesService.class.getResourceAsStream("/images/team_flags/"), StandardCharsets.UTF_8);
-
-    for (String flagFile : flagFiles) {
-      filesClient.copyFileFromResource("/images/team_flags/" + flagFile, "team_resources/flags/" + flagFile);
-    }
   }
 
   protected void updatePlay(final Play play) {
