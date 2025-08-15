@@ -1,6 +1,7 @@
 package org.sundbybergheat.baseballstreaming.clients;
 
 import java.awt.image.BufferedImage;
+import java.awt.image.RenderedImage;
 import java.io.File;
 import java.io.IOException;
 import java.net.URL;
@@ -18,9 +19,11 @@ public class FilesClient {
   private static final Logger LOG = LoggerFactory.getLogger(FilesClient.class);
 
   private final String resourceBasePath;
+  private final ImageIOHandler imageIOHandler;
 
-  public FilesClient(final String resourceBasePath) {
+  public FilesClient(final String resourceBasePath, final ImageIOHandler imageIOHandler) {
     this.resourceBasePath = resourceBasePath;
+    this.imageIOHandler = imageIOHandler;
   }
 
   public String getResourceBasePath() {
@@ -42,7 +45,7 @@ public class FilesClient {
 
   public void copyImageFromURL(final URL url, final String to) throws IOException {
     try {
-      BufferedImage in = ImageIO.read(url);
+      BufferedImage in = imageIOHandler.read(url);
       if (in != null) {
         writePng(in, to);
       } else {
@@ -58,7 +61,7 @@ public class FilesClient {
         new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(to)));
     if (!target.exists()) {
       FileUtils.createParentDirectories(target);
-      ImageIO.write(image, "png", target);
+      imageIOHandler.write(image, "png", target);
     }
   }
 
@@ -89,5 +92,15 @@ public class FilesClient {
   public boolean fileExists(final String path) {
     return new File(FilenameUtils.concat(resourceBasePath, FilenameUtils.separatorsToSystem(path)))
         .exists();
+  }
+
+  public static class ImageIOHandler {
+    public BufferedImage read(URL url) throws IOException {
+      return ImageIO.read(url);
+    }
+
+    public boolean write(RenderedImage im, String formatName, File output) throws IOException {
+      return ImageIO.write(im, formatName, output);
+    }
   }
 }

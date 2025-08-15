@@ -9,9 +9,9 @@ import okhttp3.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.sundbybergheat.baseballstreaming.models.JsonMapper;
-import org.sundbybergheat.baseballstreaming.models.wbsc.Play;
-import org.sundbybergheat.baseballstreaming.models.wbsc.PlayImpl;
 import org.sundbybergheat.baseballstreaming.models.wbsc.WBSCException;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.Play;
+import org.sundbybergheat.baseballstreaming.models.wbsc.play.PlayWrapper;
 
 public class WBSCPlayClient {
   private static final Logger LOG = LoggerFactory.getLogger(WBSCPlayClient.class);
@@ -57,11 +57,11 @@ public class WBSCPlayClient {
     throw new WBSCException(String.format("Unexpected response from WBSC: %s", responseString));
   }
 
-  public Optional<Play> optimisticGetPlay(final String gameId, final int play)
+  public Optional<PlayWrapper> optimisticGetPlay(final String gameId, final int play)
       throws IOException, WBSCException {
     for (int i = 2; i > 0; i -= 1) {
       try {
-        Optional<Play> maybePlay = getPlay(gameId, play + i);
+        Optional<PlayWrapper> maybePlay = getPlay(gameId, play + i);
         if (maybePlay.isPresent()) {
           LOG.info("Successfully obtained play {} ahead of {}.", play + i, play);
           return maybePlay;
@@ -73,7 +73,7 @@ public class WBSCPlayClient {
     return getPlay(gameId, play);
   }
 
-  public Optional<Play> getPlay(final String gameId, final int play)
+  public Optional<PlayWrapper> getPlay(final String gameId, final int play)
       throws IOException, WBSCException {
     String uri = String.format(PLAY_URL, baseUrl, gameId, play, Instant.now().toEpochMilli());
 
@@ -89,8 +89,7 @@ public class WBSCPlayClient {
     if (response.isSuccessful()) {
       String body = response.body().byteString().utf8();
       response.close();
-      return Optional.of(
-          PlayImpl.builder().from(JsonMapper.fromJson(body, Play.class)).playNumber(play).build());
+      return Optional.of(new PlayWrapper(play, JsonMapper.fromJson(body, Play.class)));
     }
 
     if (response.code() == 404) {

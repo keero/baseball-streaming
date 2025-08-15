@@ -13,6 +13,7 @@ public class JsonMapper {
   private static final ObjectMapper JSON =
       new ObjectMapper(new JsonFactory())
           .registerModule(new Jdk8Module())
+          .registerModule(new EitherModule())
           .enable(JsonParser.Feature.STRICT_DUPLICATE_DETECTION)
           .setSerializationInclusion(Include.NON_NULL)
           .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
