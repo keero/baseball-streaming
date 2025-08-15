@@ -59,8 +59,6 @@ public class App {
       return;
     }
 
-    // Due to rate-limiting on WBSC APIs, always only fetch this series stats
-
     String target = null;
     String gameId = null;
     String playsBaseUrl = null;
