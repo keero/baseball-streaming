@@ -216,6 +216,8 @@ public class BatterTools {
         long flyOuts =
             plateApperances.stream()
                 .filter(pa -> pa.text().orElse("").toLowerCase().contains("flies out"))
+                // Don't count sac fly as fly out.
+                .filter(pa -> !pa.text().orElse("").toLowerCase().contains("sacrifice fly"))
                 .count();
         if (flyOuts > 1) {
           summary.add(flyOuts + " FLYOUTS");
