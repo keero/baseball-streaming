@@ -223,7 +223,7 @@ public class FilesService {
 
   private void updatePitcher(final Player pitcher, final String subdir) throws IOException {
     filesClient.writeStringToFile(
-        subdir + "/count.txt", String.format("P: %s", pitcher.pitches().orElse("")));
+        subdir + "/count.txt", String.format("P: %s", pitcher.pitches().orElse("0")));
 
     filesClient.writeStringToFile(subdir + "/firstname.txt", pitcher.firstName().orElse(""));
     filesClient.writeStringToFile(subdir + "/fullname.txt", pitcher.fullName().orElse(""));
