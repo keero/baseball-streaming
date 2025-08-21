@@ -61,11 +61,11 @@ public class PitcherTools {
   private static String summaryOfGame(Player pitcher) {
     return "%s IP  %s H  %s R  %s ER  %s BB  %s K"
         .formatted(
-            pitcher.inningsPitched(),
-            pitcher.pitcherHits(),
-            pitcher.pitcherRuns(),
-            pitcher.earnedRuns(),
-            pitcher.pitcherWalks(),
-            pitcher.pitcherStrikeouts());
+            pitcher.inningsPitched().orElse("0.0"),
+            pitcher.pitcherHits().orElse("0"),
+            pitcher.pitcherRuns().orElse("0"),
+            pitcher.earnedRuns().orElse("0"),
+            pitcher.pitcherWalks().orElse("0"),
+            pitcher.pitcherStrikeouts().orElse("0"));
   }
 }
